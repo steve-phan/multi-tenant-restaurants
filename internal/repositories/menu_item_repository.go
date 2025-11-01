@@ -73,9 +73,12 @@ func (r *MenuItemRepository) GetByRestaurantID(restaurantID uint) ([]models.Menu
 	return menuItems, nil
 }
 
-// Update updates an existing menu item
-func (r *MenuItemRepository) Update(menuItem *models.MenuItem) error {
-	return r.db.Save(menuItem).Error
+// Update updates an existing menu item using provided updates map (only updates fields in the map)
+func (r *MenuItemRepository) Update(id uint, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil // Nothing to update
+	}
+	return r.db.Model(&models.MenuItem{}).Where("id = ?", id).Updates(updates).Error
 }
 
 // Delete deletes a menu item

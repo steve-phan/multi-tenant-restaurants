@@ -2,24 +2,26 @@ package handlers
 
 import (
 	"net/http"
+	"restaurant-backend/internal/dto"
 	"restaurant-backend/internal/middleware"
-	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/repositories"
+	"restaurant-backend/internal/services"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 // CategoryHandler handles menu category-related requests
 type CategoryHandler struct {
-	categoryRepo *repositories.CategoryRepository
+	categoryRepo    *repositories.CategoryRepository
+	categoryService *services.CategoryService
 }
 
 // NewCategoryHandler creates a new CategoryHandler instance
 func NewCategoryHandler(categoryRepo *repositories.CategoryRepository) *CategoryHandler {
 	return &CategoryHandler{
-		categoryRepo: categoryRepo,
+		categoryRepo:    categoryRepo,
+		categoryService: services.NewCategoryService(categoryRepo),
 	}
 }
 
@@ -29,13 +31,14 @@ func NewCategoryHandler(categoryRepo *repositories.CategoryRepository) *Category
 // @Tags categories
 // @Accept json
 // @Produce json
-// @Param category body models.MenuCategory true "Category data"
+// @Param request body dto.CreateCategoryRequest true "Category data"
 // @Success 201 {object} models.MenuCategory
 // @Failure 400 {object} map[string]string
 // @Router /api/v1/categories [post]
 func (h *CategoryHandler) CreateCategory(c *gin.Context) {
-	var category models.MenuCategory
-	if err := c.ShouldBindJSON(&category); err != nil {
+	// Bind request
+	var req dto.CreateCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -47,19 +50,14 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 		return
 	}
 
-	// Trim the category name
-	category.Name = strings.TrimSpace(category.Name)
-
-	// Validate that the category name is not already taken
-	if _, err := h.categoryRepo.GetByName(category.Name); err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category name already taken"})
-		return
-	}
-
-	category.RestaurantID = restaurantID.(uint)
-
-	if err := h.categoryRepo.Create(&category); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Create category using service
+	category, err := h.categoryService.CreateCategory(&req, restaurantID.(uint))
+	if err != nil {
+		statusCode := http.StatusBadRequest
+		if err.Error() == "category name already taken" {
+			statusCode = http.StatusConflict
+		}
+		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -116,12 +114,12 @@ func (h *CategoryHandler) ListCategories(c *gin.Context) {
 
 // UpdateCategory handles updating a category
 // @Summary Update Menu Category
-// @Description Update an existing menu category
+// @Description Update an existing menu category (only provided fields will be updated)
 // @Tags categories
 // @Accept json
 // @Produce json
 // @Param id path int true "Category ID"
-// @Param category body models.MenuCategory true "Category data"
+// @Param request body dto.UpdateCategoryRequest true "Category update data (only provided fields will be updated)"
 // @Success 200 {object} models.MenuCategory
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -133,25 +131,21 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	var category models.MenuCategory
-	if err := c.ShouldBindJSON(&category); err != nil {
+	// Bind update request
+	var req dto.UpdateCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	category.ID = uint(id)
-
-	// Get restaurant ID from context (set by middleware)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
-		return
-	}
-
-	category.RestaurantID = restaurantID.(uint)
-
-	if err := h.categoryRepo.Update(&category); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Update category using service
+	category, err := h.categoryService.UpdateCategory(uint(id), &req)
+	if err != nil {
+		statusCode := http.StatusBadRequest
+		if err.Error() == "category not found" {
+			statusCode = http.StatusNotFound
+		}
+		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
 	}
 

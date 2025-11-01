@@ -4,22 +4,25 @@ import (
 	"net/http"
 	"strconv"
 
+	"restaurant-backend/internal/dto"
 	"restaurant-backend/internal/middleware"
-	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/repositories"
+	"restaurant-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 // MenuItemHandler handles menu item-related requests
 type MenuItemHandler struct {
-	menuItemRepo *repositories.MenuItemRepository
+	menuItemRepo    *repositories.MenuItemRepository
+	menuItemService *services.MenuItemService
 }
 
 // NewMenuItemHandler creates a new MenuItemHandler instance
 func NewMenuItemHandler(menuItemRepo *repositories.MenuItemRepository) *MenuItemHandler {
 	return &MenuItemHandler{
-		menuItemRepo: menuItemRepo,
+		menuItemRepo:    menuItemRepo,
+		menuItemService: services.NewMenuItemService(menuItemRepo),
 	}
 }
 
@@ -29,13 +32,14 @@ func NewMenuItemHandler(menuItemRepo *repositories.MenuItemRepository) *MenuItem
 // @Tags menu-items
 // @Accept json
 // @Produce json
-// @Param menu_item body models.MenuItem true "Menu Item data"
+// @Param request body dto.CreateMenuItemRequest true "Menu Item data"
 // @Success 201 {object} models.MenuItem
 // @Failure 400 {object} map[string]string
 // @Router /api/v1/menu-items [post]
 func (h *MenuItemHandler) CreateMenuItem(c *gin.Context) {
-	var menuItem models.MenuItem
-	if err := c.ShouldBindJSON(&menuItem); err != nil {
+	// Bind request
+	var req dto.CreateMenuItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -47,16 +51,10 @@ func (h *MenuItemHandler) CreateMenuItem(c *gin.Context) {
 		return
 	}
 
-	menuItem.RestaurantID = restaurantID.(uint)
-
-	// Validate that category_id is provided
-	if menuItem.CategoryID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category_id is required"})
-		return
-	}
-
-	if err := h.menuItemRepo.Create(&menuItem); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Create menu item using service
+	menuItem, err := h.menuItemService.CreateMenuItem(&req, restaurantID.(uint))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -130,12 +128,12 @@ func (h *MenuItemHandler) ListMenuItems(c *gin.Context) {
 
 // UpdateMenuItem handles updating a menu item
 // @Summary Update Menu Item
-// @Description Update an existing menu item
+// @Description Update an existing menu item (only provided fields will be updated)
 // @Tags menu-items
 // @Accept json
 // @Produce json
 // @Param id path int true "Menu Item ID"
-// @Param menu_item body models.MenuItem true "Menu Item data"
+// @Param request body dto.UpdateMenuItemRequest true "Menu Item update data (only provided fields will be updated)"
 // @Success 200 {object} models.MenuItem
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -147,18 +145,21 @@ func (h *MenuItemHandler) UpdateMenuItem(c *gin.Context) {
 		return
 	}
 
-	var menuItem models.MenuItem
-	if err := c.ShouldBindJSON(&menuItem); err != nil {
+	// Bind update request
+	var req dto.UpdateMenuItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	menuItem.ID = uint(id)
-	restaurantID, _ := c.Get(middleware.RestaurantIDKey)
-	menuItem.RestaurantID = restaurantID.(uint)
-
-	if err := h.menuItemRepo.Update(&menuItem); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Update menu item using service
+	menuItem, err := h.menuItemService.UpdateMenuItem(uint(id), &req)
+	if err != nil {
+		statusCode := http.StatusBadRequest
+		if err.Error() == "menu item not found" {
+			statusCode = http.StatusNotFound
+		}
+		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -187,4 +188,3 @@ func (h *MenuItemHandler) DeleteMenuItem(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
-

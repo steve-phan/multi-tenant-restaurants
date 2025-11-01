@@ -51,9 +51,12 @@ func (r *CategoryRepository) GetByRestaurantID(restaurantID uint) ([]models.Menu
 	return categories, nil
 }
 
-// Update updates an existing category
-func (r *CategoryRepository) Update(category *models.MenuCategory) error {
-	return r.db.Save(category).Error
+// Update updates an existing category using provided updates map (only updates fields in the map)
+func (r *CategoryRepository) Update(id uint, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil // Nothing to update
+	}
+	return r.db.Model(&models.MenuCategory{}).Where("id = ?", id).Updates(updates).Error
 }
 
 // Delete deletes a category
