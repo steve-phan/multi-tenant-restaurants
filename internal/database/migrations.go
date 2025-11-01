@@ -64,15 +64,25 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 	`).Error; err != nil {
 		return fmt.Errorf("failed to create User table: %w", err)
 	}
-	
+
 	// Create index on restaurant_id for RLS
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_users_restaurant_id ON users(restaurant_id)`)
-	
+
 	// Step 3: Now that both Restaurant and User exist, use AutoMigrate for remaining tables
 	// GORM can now properly handle all relationships
+
+	// First, migrate MenuCategory
+	if err := db.AutoMigrate(&models.MenuCategory{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate MenuCategory: %w", err)
+	}
+
+	// Migrate MenuItem - now the column should be category_id
+	if err := db.AutoMigrate(&models.MenuItem{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate MenuItem: %w", err)
+	}
+
+	// Migrate remaining tables
 	if err := db.AutoMigrate(
-		&models.MenuCategory{},
-		&models.MenuItem{},
 		&models.MenuItemImage{},
 		&models.Reservation{},
 		&models.Order{},

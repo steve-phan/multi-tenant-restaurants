@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 
 	"restaurant-backend/internal/dto"
 	"restaurant-backend/internal/models"
@@ -33,10 +34,15 @@ func (s *MenuItemService) CreateMenuItem(req *dto.CreateMenuItemRequest, restaur
 		return nil, errors.New("price cannot be negative")
 	}
 
+	// Check if name is already taken
+	if _, err := s.menuItemRepo.GetByName(req.Name); err == nil {
+		return nil, errors.New("name already taken")
+	}
+
 	menuItem := &models.MenuItem{
 		RestaurantID: restaurantID,
 		CategoryID:   req.CategoryID,
-		Name:         req.Name,
+		Name:         strings.TrimSpace(req.Name),
 		Description:  req.Description,
 		Price:        req.Price,
 		ImageURL:     req.ImageURL,
@@ -67,20 +73,12 @@ func (s *MenuItemService) UpdateMenuItem(id uint, req *dto.UpdateMenuItemRequest
 		if *req.Name == "" {
 			return nil, errors.New("name cannot be empty")
 		}
+		// Validate name is not already taken
+		if _, err := s.menuItemRepo.GetByName(*req.Name); err == nil {
+			return nil, errors.New("name already taken")
+		}
 		updates["name"] = *req.Name
 	}
-
-	if req.Description != nil {
-		updates["description"] = *req.Description
-	}
-
-	if req.Price != nil {
-		if *req.Price < 0 {
-			return nil, errors.New("price cannot be negative")
-		}
-		updates["price"] = *req.Price
-	}
-
 	if req.ImageURL != nil {
 		updates["image_url"] = *req.ImageURL
 	}

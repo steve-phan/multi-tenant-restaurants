@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"restaurant-backend/internal/models"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -31,6 +32,14 @@ func (r *MenuItemRepository) GetByID(id uint) (*models.MenuItem, error) {
 		return nil, err
 	}
 	// Sort images manually (primary first, then by display_order)
+	return &menuItem, nil
+}
+
+func (r *MenuItemRepository) GetByName(name string) (*models.MenuItem, error) {
+	var menuItem models.MenuItem
+	if err := r.db.Where("lower(name) = lower(?)", strings.TrimSpace(name)).First(&menuItem).Error; err != nil {
+		return nil, err
+	}
 	return &menuItem, nil
 }
 
@@ -85,4 +94,3 @@ func (r *MenuItemRepository) Update(id uint, updates map[string]interface{}) err
 func (r *MenuItemRepository) Delete(id uint) error {
 	return r.db.Delete(&models.MenuItem{}, id).Error
 }
-
