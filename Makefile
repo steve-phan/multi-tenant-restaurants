@@ -33,9 +33,16 @@ run-dev: ## Run the application in development mode
 	@echo "Starting application in development mode..."
 	ENVIRONMENT=development LOG_LEVEL=debug go run $(MAIN_PATH)
 
-migrate: ## Run database migrations
+migrate: ## Run database migrations (schema only, no bootstrap)
 	@echo "Running database migrations..."
 	go run $(MAIN_PATH) --migrate
+
+bootstrap: ## Bootstrap platform organization and admin user
+	@echo "Bootstrapping platform organization and admin user..."
+	go run $(MAIN_PATH) --bootstrap
+
+setup-db: migrate bootstrap ## Set up database: run migrations and bootstrap
+	@echo "Database setup complete!"
 
 test: ## Run tests
 	@echo "Running tests..."

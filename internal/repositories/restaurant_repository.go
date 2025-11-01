@@ -20,10 +20,32 @@ func NewRestaurantRepository(db *gorm.DB) *RestaurantRepository {
 func (r *RestaurantRepository) Create(restaurant *models.Restaurant) error {
 	// Ensure ID is zero so GORM uses auto-increment
 	// This prevents duplicate key errors if ID was accidentally set
+	// Only allow explicit ID=1 for platform organization during migrations
 	if restaurant.ID != 0 && restaurant.ID != models.PlatformOrganizationID {
-		// Only allow ID=1 for platform organization
 		restaurant.ID = 0
 	}
+
+	// Before creating, ensure the sequence is properly synced
+	// This is a safety check to prevent sequence out-of-sync issues
+	r.db.Exec(`
+		DO $$
+		DECLARE
+			max_id BIGINT;
+		BEGIN
+			SELECT COALESCE(MAX(id), 0) INTO max_id FROM restaurants;
+			-- If max_id is greater than current sequence value, sync it
+			IF max_id >= currval('restaurants_id_seq') THEN
+				PERFORM setval('restaurants_id_seq', GREATEST(max_id, 1), true);
+			END IF;
+		EXCEPTION WHEN OTHERS THEN
+			-- Sequence might not be initialized, set it based on max_id
+			BEGIN
+				SELECT COALESCE(MAX(id), 0) INTO max_id FROM restaurants;
+				PERFORM setval('restaurants_id_seq', GREATEST(max_id, 1), true);
+			END;
+		END $$;
+	`)
+
 	return r.db.Create(restaurant).Error
 }
 

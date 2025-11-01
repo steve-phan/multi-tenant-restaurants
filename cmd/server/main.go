@@ -17,6 +17,7 @@ func main() {
 	var migrate = flag.Bool("migrate", false, "Run database migrations (up)")
 	var migrateDown = flag.Bool("migrate-down", false, "Rollback last migration (down)")
 	var migrateStatus = flag.Bool("migrate-status", false, "Show migration status")
+	var bootstrap = flag.Bool("bootstrap", false, "Bootstrap platform organization and admin user")
 	flag.Parse()
 
 	// Load configuration
@@ -55,6 +56,14 @@ func main() {
 		if err := database.ShowMigrationStatus(db, cfg); err != nil {
 			log.Fatalf("Failed to show migration status: %v", err)
 		}
+		os.Exit(0)
+	}
+
+	if *bootstrap {
+		if err := database.BootstrapPlatform(db, cfg); err != nil {
+			log.Fatalf("Failed to bootstrap platform: %v", err)
+		}
+		fmt.Println("Bootstrap completed successfully")
 		os.Exit(0)
 	}
 

@@ -29,7 +29,9 @@ func (m *SyncSequences) Up(db *gorm.DB) error {
 			max_id BIGINT;
 		BEGIN
 			SELECT COALESCE(MAX(id), 0) INTO max_id FROM restaurants;
-			PERFORM setval('restaurants_id_seq', GREATEST(max_id, 1));
+			-- Set sequence to max_id + 1 (or at least 1) to ensure next value doesn't conflict
+			-- The third parameter 'true' means use the value (don't call nextval first)
+			PERFORM setval('restaurants_id_seq', GREATEST(max_id, 1), true);
 		END $$;
 	`).Error; err != nil {
 		return fmt.Errorf("failed to sync sequences: %w", err)
@@ -43,4 +45,3 @@ func (m *SyncSequences) Down(db *gorm.DB) error {
 	// No-op: sequences will auto-adjust on inserts
 	return nil
 }
-

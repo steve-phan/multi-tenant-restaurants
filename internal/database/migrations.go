@@ -10,8 +10,9 @@ import (
 )
 
 // RunMigrations runs all database migrations using the new migration system
+// Note: This does NOT bootstrap the platform - use BootstrapPlatform() separately
 func RunMigrations(db *gorm.DB, cfg *config.Config) error {
-	// Register all migrations in order
+	// Register all migrations in order (excluding bootstrap)
 	migrationList := []migrations.Migration{
 		migrations.NewCreateRestaurantsTable(),
 		migrations.NewCreateUsersTable(),
@@ -20,7 +21,7 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 		migrations.NewSyncSequences(),
 		migrations.NewEnableRLS(),
 		migrations.NewCreateRLSPolicies(),
-		migrations.NewBootstrapPlatform(cfg),
+		// Bootstrap is separate - use BootstrapPlatform() instead
 	}
 
 	// Create runner and execute migrations
@@ -37,6 +38,7 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 // RunMigrationsDown rolls back the last migration
 func RunMigrationsDown(db *gorm.DB, cfg *config.Config) error {
 	// Register all migrations (needed to find the one to rollback)
+	// Note: Bootstrap is not in the migration list anymore
 	migrationList := []migrations.Migration{
 		migrations.NewCreateRestaurantsTable(),
 		migrations.NewCreateUsersTable(),
@@ -45,7 +47,6 @@ func RunMigrationsDown(db *gorm.DB, cfg *config.Config) error {
 		migrations.NewSyncSequences(),
 		migrations.NewEnableRLS(),
 		migrations.NewCreateRLSPolicies(),
-		migrations.NewBootstrapPlatform(cfg),
 	}
 
 	runner := migrations.NewRunner(db, migrationList)
@@ -60,7 +61,7 @@ func RunMigrationsDown(db *gorm.DB, cfg *config.Config) error {
 
 // ShowMigrationStatus shows the status of all migrations
 func ShowMigrationStatus(db *gorm.DB, cfg *config.Config) error {
-	// Register all migrations
+	// Register all migrations (excluding bootstrap)
 	migrationList := []migrations.Migration{
 		migrations.NewCreateRestaurantsTable(),
 		migrations.NewCreateUsersTable(),
@@ -69,7 +70,6 @@ func ShowMigrationStatus(db *gorm.DB, cfg *config.Config) error {
 		migrations.NewSyncSequences(),
 		migrations.NewEnableRLS(),
 		migrations.NewCreateRLSPolicies(),
-		migrations.NewBootstrapPlatform(cfg),
 	}
 
 	runner := migrations.NewRunner(db, migrationList)
