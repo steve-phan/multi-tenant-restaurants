@@ -11,7 +11,7 @@ type MenuItemImage struct {
 	MenuItemID   uint      `gorm:"index;not null" json:"menu_item_id"`
 	ImageURL     string    `gorm:"not null" json:"image_url"`
 	DisplayOrder int       `gorm:"default:0;not null" json:"display_order"` // Order for sorting images
-	IsPrimary    bool      `gorm:"default:false" json:"is_primary"`          // Primary/first image
+	IsPrimary    bool      `gorm:"default:false" json:"is_primary"`         // Primary/first image
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 
@@ -20,3 +20,7 @@ type MenuItemImage struct {
 	MenuItem   MenuItem   `gorm:"foreignKey:MenuItemID"`
 }
 
+// TableName specifies the table name for MenuItemImage
+func (MenuItemImage) TableName() string {
+	return "menu_item_images"
+}

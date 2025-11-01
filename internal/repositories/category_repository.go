@@ -30,6 +30,15 @@ func (r *CategoryRepository) GetByID(id uint) (*models.MenuCategory, error) {
 	return &category, nil
 }
 
+// GetByName retrieves a category by name
+func (r *CategoryRepository) GetByName(name string) (*models.MenuCategory, error) {
+	var category models.MenuCategory
+	if err := r.db.Where("lower(name) = lower(?)", name).First(&category).Error; err != nil {
+		return nil, err
+	}
+	return &category, nil
+}
+
 // GetByRestaurantID retrieves all categories for a restaurant (RLS ensures tenant isolation)
 // Ordered by display_order
 func (r *CategoryRepository) GetByRestaurantID(restaurantID uint) ([]models.MenuCategory, error) {
@@ -51,4 +60,3 @@ func (r *CategoryRepository) Update(category *models.MenuCategory) error {
 func (r *CategoryRepository) Delete(id uint) error {
 	return r.db.Delete(&models.MenuCategory{}, id).Error
 }
-

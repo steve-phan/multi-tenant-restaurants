@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
-
 	"restaurant-backend/internal/middleware"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/repositories"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -44,6 +44,15 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
+		return
+	}
+
+	// Trim the category name
+	category.Name = strings.TrimSpace(category.Name)
+
+	// Validate that the category name is not already taken
+	if _, err := h.categoryRepo.GetByName(category.Name); err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category name already taken"})
 		return
 	}
 
@@ -171,4 +180,3 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
-

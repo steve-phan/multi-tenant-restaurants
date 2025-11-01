@@ -20,3 +20,7 @@ type MenuCategory struct {
 	MenuItems  []MenuItem `gorm:"foreignKey:CategoryID"`
 }
 
+// TableName specifies the table name for MenuCategory
+func (MenuCategory) TableName() string {
+	return "menu_categories"
+}
