@@ -1,0 +1,173 @@
+package models
+
+import (
+	"time"
+)
+
+// RestaurantStatus represents the status of a restaurant
+type RestaurantStatus string
+
+const (
+	RestaurantStatusPending   RestaurantStatus = "pending"
+	RestaurantStatusActive    RestaurantStatus = "active"
+	RestaurantStatusInactive  RestaurantStatus = "inactive"
+	RestaurantStatusSuspended RestaurantStatus = "suspended"
+)
+
+// PlatformOrganizationID is the special organization ID for platform-level users (KAMs)
+// This is a reserved organization that represents the platform itself
+const PlatformOrganizationID uint = 1
+
+// IsPlatformOrganization checks if a restaurant ID is the platform organization
+func IsPlatformOrganization(id uint) bool {
+	return id == PlatformOrganizationID
+}
+
+// Restaurant represents a tenant (restaurant)
+type Restaurant struct {
+	ID          uint            `gorm:"primaryKey" json:"id"`
+	Name        string          `gorm:"not null" json:"name"`
+	Description string          `json:"description"`
+	Address     string          `json:"address"`
+	Phone       string          `json:"phone"`
+	Email       string          `gorm:"uniqueIndex" json:"email"`
+	Status      RestaurantStatus `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	IsActive    bool            `gorm:"default:false" json:"is_active"` // Deprecated: use Status instead
+	
+	// KAM (Key Account Manager) fields
+	KAMID       *uint      `gorm:"index" json:"kam_id,omitempty"` // Assigned KAM
+	ActivatedBy *uint      `json:"activated_by,omitempty"`        // User who activated
+	ActivatedAt *time.Time `json:"activated_at,omitempty"`
+	
+	// Registration details
+	ContactName  string    `json:"contact_name"`
+	ContactEmail string    `json:"contact_email"`
+	ContactPhone string    `json:"contact_phone"`
+	
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	
+	// Relationships
+	Users        []User        `gorm:"foreignKey:RestaurantID"`
+	Menus        []Menu        `gorm:"foreignKey:RestaurantID"`
+	Reservations []Reservation `gorm:"foreignKey:RestaurantID"`
+	Orders       []Order       `gorm:"foreignKey:RestaurantID"`
+	KAM          *User         `gorm:"foreignKey:KAMID" json:"kam,omitempty"`
+}
+
+// User represents a user (admin, staff, client, or KAM)
+// KAM users belong to the Platform Organization (restaurant_id = PlatformOrganizationID)
+type User struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	RestaurantID uint      `gorm:"index;not null" json:"restaurant_id"` // Required - KAMs belong to Platform Organization
+	Email        string    `gorm:"not null" json:"email"`
+	PasswordHash string    `gorm:"not null" json:"-"`
+	FirstName    string    `json:"first_name"`
+	LastName     string    `json:"last_name"`
+	Role         string    `gorm:"type:varchar(20);not null" json:"role"` // Admin, Staff, Client, KAM (Key Account Manager)
+	IsActive     bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	
+	// Relationships
+	Restaurant Restaurant `gorm:"foreignKey:RestaurantID"`
+}
+
+// IsKAM checks if user is a KAM
+func (u *User) IsKAM() bool {
+	return u.Role == "KAM"
+}
+
+// IsPlatformUser checks if user belongs to the platform organization
+func (u *User) IsPlatformUser() bool {
+	return u.RestaurantID == PlatformOrganizationID
+}
+
+// Menu represents a menu category
+type Menu struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	RestaurantID uint      `gorm:"index;not null" json:"restaurant_id"` // Crucial for RLS
+	Name         string    `gorm:"not null" json:"name"`
+	Description  string    `json:"description"`
+	IsActive     bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Relationships
+	Restaurant Restaurant `gorm:"foreignKey:RestaurantID"`
+	MenuItems  []MenuItem `gorm:"foreignKey:MenuID"`
+}
+
+// MenuItem represents a menu item
+type MenuItem struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	RestaurantID uint      `gorm:"index;not null" json:"restaurant_id"` // Crucial for RLS
+	MenuID       uint      `gorm:"index;not null" json:"menu_id"`
+	Name         string    `gorm:"not null" json:"name"`
+	Description  string    `json:"description"`
+	Price        float64   `gorm:"not null" json:"price"`
+	ImageURL     string    `json:"image_url"`
+	Category     string    `json:"category"`
+	IsAvailable  bool      `gorm:"default:true" json:"is_available"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Relationships
+	Restaurant Restaurant  `gorm:"foreignKey:RestaurantID"`
+	Menu       Menu        `gorm:"foreignKey:MenuID"`
+	OrderItems []OrderItem `gorm:"foreignKey:MenuItemID"`
+}
+
+// Reservation represents a table reservation
+type Reservation struct {
+	ID             uint      `gorm:"primaryKey" json:"id"`
+	RestaurantID   uint      `gorm:"index;not null" json:"restaurant_id"` // Crucial for RLS
+	UserID         uint      `gorm:"index;not null" json:"user_id"`
+	TableNumber    string    `gorm:"not null" json:"table_number"`
+	StartTime      time.Time `gorm:"not null" json:"start_time"`
+	EndTime        time.Time `gorm:"not null" json:"end_time"`
+	NumberOfGuests int       `gorm:"not null" json:"number_of_guests"`
+	Status         string    `gorm:"type:varchar(20);default:'pending'" json:"status"` // pending, confirmed, cancelled, completed
+	Notes          string    `json:"notes"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+
+	// Relationships
+	Restaurant Restaurant `gorm:"foreignKey:RestaurantID"`
+	User       User       `gorm:"foreignKey:UserID"`
+}
+
+// Order represents an order
+type Order struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	RestaurantID uint      `gorm:"index;not null" json:"restaurant_id"` // Crucial for RLS
+	UserID       uint      `gorm:"index;not null" json:"user_id"`
+	Status       string    `gorm:"type:varchar(20);default:'pending'" json:"status"` // pending, confirmed, preparing, ready, completed, cancelled
+	TotalAmount  float64   `gorm:"not null" json:"total_amount"`
+	Notes        string    `json:"notes"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Relationships
+	Restaurant Restaurant  `gorm:"foreignKey:RestaurantID"`
+	User       User        `gorm:"foreignKey:UserID"`
+	OrderItems []OrderItem `gorm:"foreignKey:OrderID"`
+}
+
+// OrderItem represents an item in an order
+type OrderItem struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	RestaurantID uint      `gorm:"index;not null" json:"restaurant_id"` // Crucial for RLS
+	OrderID      uint      `gorm:"index;not null" json:"order_id"`
+	MenuItemID   uint      `gorm:"index;not null" json:"menu_item_id"`
+	Quantity     int       `gorm:"not null" json:"quantity"`
+	Price        float64   `gorm:"not null" json:"price"` // Price at time of order
+	Notes        string    `json:"notes"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Relationships
+	Restaurant Restaurant `gorm:"foreignKey:RestaurantID"`
+	Order      Order      `gorm:"foreignKey:OrderID"`
+	MenuItem   MenuItem   `gorm:"foreignKey:MenuItemID"`
+}
