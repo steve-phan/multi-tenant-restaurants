@@ -152,8 +152,15 @@ func (h *MenuItemHandler) UpdateMenuItem(c *gin.Context) {
 		return
 	}
 
-	// Update menu item using service
-	menuItem, err := h.menuItemService.UpdateMenuItem(uint(id), &req)
+	// Get restaurant ID from context (set by middleware)
+	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
+		return
+	}
+
+	// Update menu item using service (with ownership validation)
+	menuItem, err := h.menuItemService.UpdateMenuItem(uint(id), &req, restaurantID.(uint))
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "menu item not found" {

@@ -51,11 +51,17 @@ func (s *CategoryService) CreateCategory(req *dto.CreateCategoryRequest, restaur
 }
 
 // UpdateCategory updates a category (only updates provided fields)
-func (s *CategoryService) UpdateCategory(id uint, req *dto.UpdateCategoryRequest) (*models.MenuCategory, error) {
+func (s *CategoryService) UpdateCategory(id uint, req *dto.UpdateCategoryRequest, restaurantID uint) (*models.MenuCategory, error) {
 	// Verify category exists
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
 		return nil, errors.New("category not found")
+	}
+
+	// Validate ownership - ensure category belongs to the requesting restaurant
+	// This is a defense-in-depth measure in addition to RLS
+	if category.RestaurantID != restaurantID {
+		return nil, errors.New("category not found") // Don't reveal existence of other tenants' data
 	}
 
 	// Build update map with only provided (non-nil) fields

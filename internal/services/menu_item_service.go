@@ -59,11 +59,17 @@ func (s *MenuItemService) CreateMenuItem(req *dto.CreateMenuItemRequest, restaur
 }
 
 // UpdateMenuItem updates a menu item (only updates provided fields)
-func (s *MenuItemService) UpdateMenuItem(id uint, req *dto.UpdateMenuItemRequest) (*models.MenuItem, error) {
+func (s *MenuItemService) UpdateMenuItem(id uint, req *dto.UpdateMenuItemRequest, restaurantID uint) (*models.MenuItem, error) {
 	// Verify menu item exists
 	menuItem, err := s.menuItemRepo.GetByID(id)
 	if err != nil {
 		return nil, errors.New("menu item not found")
+	}
+
+	// Validate ownership - ensure menu item belongs to the requesting restaurant
+	// This is a defense-in-depth measure in addition to RLS
+	if menuItem.RestaurantID != restaurantID {
+		return nil, errors.New("menu item not found") // Don't reveal existence of other tenants' data
 	}
 
 	// Build update map with only provided (non-nil) fields

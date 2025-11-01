@@ -97,8 +97,13 @@ db-migrate-down: ## Rollback database migrations
 	@if command -v migrate >/dev/null 2>&1; then \
 		migrate -path migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL_MODE)" down; \
 	else \
-		echo "migrate tool not found. Please install it or use manual rollback."; \
+		echo "migrate tool not found. Using built-in migration..."; \
+		go run $(MAIN_PATH) --migrate-down; \
 	fi
+
+db-migrate-status: ## Show migration status
+	@echo "Checking migration status..."
+	go run $(MAIN_PATH) --migrate-status
 
 # Quick start
 start: check-env build run ## Quick start: check env, build, and run

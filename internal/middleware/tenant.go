@@ -31,6 +31,18 @@ func SetTenantContext(db *gorm.DB) gin.HandlerFunc {
 		// For platform users, we still set the context but RLS policies handle them differently
 		userRole, _ := c.Get(UserRoleKey)
 
+		// Set the PostgreSQL role to restaurant_app_user for RLS policies to take effect
+		// This ensures all queries run with the role that has RLS policies applied
+		// Note: This must be done per-request, not at connection time (for migrations)
+		db.Exec(`
+			DO $$
+			BEGIN
+				IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'restaurant_app_user') THEN
+					SET ROLE restaurant_app_user;
+				END IF;
+			END $$;
+		`)
+
 		// Set the PostgreSQL session variable for RLS
 		// This ensures all queries in this request are isolated to the tenant
 		sql := fmt.Sprintf("SET app.current_restaurant = %d", restaurantID)

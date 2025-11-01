@@ -138,8 +138,15 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	// Update category using service
-	category, err := h.categoryService.UpdateCategory(uint(id), &req)
+	// Get restaurant ID from context (set by middleware)
+	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
+		return
+	}
+
+	// Update category using service (with ownership validation)
+	category, err := h.categoryService.UpdateCategory(uint(id), &req, restaurantID.(uint))
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "category not found" {
