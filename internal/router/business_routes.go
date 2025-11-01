@@ -9,10 +9,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// setupBusinessRoutes configures business-related routes (menus, orders, reservations)
+// setupBusinessRoutes configures business-related routes (categories, menu items, orders, reservations)
 func setupBusinessRoutes(protected *gin.RouterGroup, db *gorm.DB) {
 	// Initialize repositories
-	menuRepo := repositories.NewMenuRepository(db)
+	categoryRepo := repositories.NewCategoryRepository(db)
 	menuItemRepo := repositories.NewMenuItemRepository(db)
 	reservationRepo := repositories.NewReservationRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
@@ -23,22 +23,22 @@ func setupBusinessRoutes(protected *gin.RouterGroup, db *gorm.DB) {
 	orderService := services.NewOrderService(orderRepo, orderItemRepo, menuItemRepo)
 
 	// Initialize handlers
-	menuHandler := handlers.NewMenuHandler(menuRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 	menuItemHandler := handlers.NewMenuItemHandler(menuItemRepo)
 	reservationHandler := handlers.NewReservationHandler(reservationService, reservationRepo)
 	orderHandler := handlers.NewOrderHandler(orderService, orderRepo)
 
-	// Menu routes
-	menus := protected.Group("/menus")
+	// Menu Category routes (Admin/Staff only - for managing categories)
+	categories := protected.Group("/categories")
 	{
-		menus.POST("", menuHandler.CreateMenu)
-		menus.GET("", menuHandler.ListMenus)
-		menus.GET("/:id", menuHandler.GetMenu)
-		menus.PUT("/:id", menuHandler.UpdateMenu)
-		menus.DELETE("/:id", menuHandler.DeleteMenu)
+		categories.POST("", categoryHandler.CreateCategory)
+		categories.GET("", categoryHandler.ListCategories)
+		categories.GET("/:id", categoryHandler.GetCategory)
+		categories.PUT("/:id", categoryHandler.UpdateCategory)
+		categories.DELETE("/:id", categoryHandler.DeleteCategory)
 	}
 
-	// Menu Item routes
+	// Menu Item routes (Admin/Staff only - for managing items)
 	menuItems := protected.Group("/menu-items")
 	{
 		menuItems.POST("", menuItemHandler.CreateMenuItem)
@@ -46,6 +46,18 @@ func setupBusinessRoutes(protected *gin.RouterGroup, db *gorm.DB) {
 		menuItems.GET("/:id", menuItemHandler.GetMenuItem)
 		menuItems.PUT("/:id", menuItemHandler.UpdateMenuItem)
 		menuItems.DELETE("/:id", menuItemHandler.DeleteMenuItem)
+	}
+
+	// Menu Item Image routes (Admin/Staff only - for managing item images)
+	// Using separate prefix to avoid routing conflicts with /menu-items/:id
+	imageRepo := repositories.NewMenuItemImageRepository(db)
+	imageHandler := handlers.NewMenuItemImageHandler(imageRepo)
+	menuItemImages := protected.Group("/menu-item-images")
+	{
+		menuItemImages.POST("/:item_id", imageHandler.CreateMenuItemImage)
+		menuItemImages.GET("/:item_id", imageHandler.ListMenuItemImages)
+		menuItemImages.DELETE("/:item_id/:image_id", imageHandler.DeleteMenuItemImage)
+		menuItemImages.PUT("/:item_id/:image_id/primary", imageHandler.SetPrimaryImage)
 	}
 
 	// Reservation routes

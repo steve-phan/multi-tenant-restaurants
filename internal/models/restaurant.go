@@ -48,10 +48,10 @@ type Restaurant struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	
 	// Relationships
-	Users        []User        `gorm:"foreignKey:RestaurantID"`
-	Menus        []Menu        `gorm:"foreignKey:RestaurantID"`
-	Reservations []Reservation `gorm:"foreignKey:RestaurantID"`
-	Orders       []Order       `gorm:"foreignKey:RestaurantID"`
-	KAM          *User         `gorm:"foreignKey:KAMID" json:"kam,omitempty"`
+	Users        []User         `gorm:"foreignKey:RestaurantID"`
+	Categories   []MenuCategory `gorm:"foreignKey:RestaurantID"`
+	Reservations []Reservation  `gorm:"foreignKey:RestaurantID"`
+	Orders       []Order        `gorm:"foreignKey:RestaurantID"`
+	KAM          *User          `gorm:"foreignKey:KAMID" json:"kam,omitempty"`
 }
 

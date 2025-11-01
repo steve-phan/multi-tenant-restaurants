@@ -49,6 +49,12 @@ func (h *MenuItemHandler) CreateMenuItem(c *gin.Context) {
 
 	menuItem.RestaurantID = restaurantID.(uint)
 
+	// Validate that category_id is provided
+	if menuItem.CategoryID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category_id is required"})
+		return
+	}
+
 	if err := h.menuItemRepo.Create(&menuItem); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -57,9 +63,9 @@ func (h *MenuItemHandler) CreateMenuItem(c *gin.Context) {
 	c.JSON(http.StatusCreated, menuItem)
 }
 
-// GetMenuItem handles getting a menu item by ID
-// @Summary Get Menu Item
-// @Description Get a menu item by ID
+// GetMenuItem handles getting a menu item by ID (protected)
+// @Summary Get Menu Item (Protected)
+// @Description Get a menu item by ID with all details including images
 // @Tags menu-items
 // @Produce json
 // @Param id path int true "Menu Item ID"
@@ -84,10 +90,10 @@ func (h *MenuItemHandler) GetMenuItem(c *gin.Context) {
 
 // ListMenuItems handles listing menu items
 // @Summary List Menu Items
-// @Description List menu items, optionally filtered by menu ID
+// @Description List menu items, optionally filtered by category ID
 // @Tags menu-items
 // @Produce json
-// @Param menu_id query int false "Menu ID filter"
+// @Param category_id query int false "Category ID filter"
 // @Success 200 {array} models.MenuItem
 // @Router /api/v1/menu-items [get]
 func (h *MenuItemHandler) ListMenuItems(c *gin.Context) {
@@ -97,12 +103,12 @@ func (h *MenuItemHandler) ListMenuItems(c *gin.Context) {
 		return
 	}
 
-	// Check if menu_id query parameter is provided
-	menuIDParam := c.Query("menu_id")
-	if menuIDParam != "" {
-		menuID, err := strconv.ParseUint(menuIDParam, 10, 32)
+	// Check if category_id query parameter is provided
+	categoryIDParam := c.Query("category_id")
+	if categoryIDParam != "" {
+		categoryID, err := strconv.ParseUint(categoryIDParam, 10, 32)
 		if err == nil {
-			menuItems, err := h.menuItemRepo.GetByMenuID(uint(menuID))
+			menuItems, err := h.menuItemRepo.GetByCategoryID(uint(categoryID))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return

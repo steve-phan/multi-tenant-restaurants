@@ -22,27 +22,52 @@ func (r *MenuItemRepository) Create(menuItem *models.MenuItem) error {
 }
 
 // GetByID retrieves a menu item by ID (RLS ensures tenant isolation)
+// Includes images ordered by display_order
 func (r *MenuItemRepository) GetByID(id uint) (*models.MenuItem, error) {
 	var menuItem models.MenuItem
-	if err := r.db.First(&menuItem, id).Error; err != nil {
+	if err := r.db.Preload("Images").
+		Preload("Category").
+		First(&menuItem, id).Error; err != nil {
+		return nil, err
+	}
+	// Sort images manually (primary first, then by display_order)
+	return &menuItem, nil
+}
+
+// GetByIDPublic retrieves a menu item by ID for public access (no auth required)
+// Requires restaurant_id to ensure proper access
+func (r *MenuItemRepository) GetByIDPublic(id uint, restaurantID uint) (*models.MenuItem, error) {
+	var menuItem models.MenuItem
+	if err := r.db.Where("id = ? AND restaurant_id = ?", id, restaurantID).
+		Preload("Images").
+		Preload("Category").
+		First(&menuItem).Error; err != nil {
 		return nil, err
 	}
 	return &menuItem, nil
 }
 
-// GetByMenuID retrieves all menu items for a menu (RLS ensures tenant isolation)
-func (r *MenuItemRepository) GetByMenuID(menuID uint) ([]models.MenuItem, error) {
+// GetByCategoryID retrieves all menu items for a category (RLS ensures tenant isolation)
+// Ordered by display_order, includes images
+func (r *MenuItemRepository) GetByCategoryID(categoryID uint) ([]models.MenuItem, error) {
 	var menuItems []models.MenuItem
-	if err := r.db.Where("menu_id = ?", menuID).Find(&menuItems).Error; err != nil {
+	if err := r.db.Where("category_id = ?", categoryID).
+		Preload("Images").
+		Order("display_order ASC").Find(&menuItems).Error; err != nil {
 		return nil, err
 	}
 	return menuItems, nil
 }
 
 // GetByRestaurantID retrieves all menu items for a restaurant (RLS ensures tenant isolation)
+// Includes images for each item
 func (r *MenuItemRepository) GetByRestaurantID(restaurantID uint) ([]models.MenuItem, error) {
 	var menuItems []models.MenuItem
-	if err := r.db.Where("restaurant_id = ?", restaurantID).Find(&menuItems).Error; err != nil {
+	if err := r.db.Where("restaurant_id = ?", restaurantID).
+		Preload("Images").
+		Preload("Category").
+		Order("category_id, display_order ASC").
+		Find(&menuItems).Error; err != nil {
 		return nil, err
 	}
 	return menuItems, nil

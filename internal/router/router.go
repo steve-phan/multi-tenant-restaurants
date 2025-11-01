@@ -36,6 +36,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	{
 		// Setup authentication routes
 		setupAuthRoutes(api, authHandler)
+
+		// Setup public menu routes (no authentication required for viewing menu)
+		setupPublicMenuRoutes(api, db)
 	}
 
 	// Protected API routes

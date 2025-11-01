@@ -64,15 +64,16 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 	`).Error; err != nil {
 		return fmt.Errorf("failed to create User table: %w", err)
 	}
-
+	
 	// Create index on restaurant_id for RLS
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_users_restaurant_id ON users(restaurant_id)`)
-
+	
 	// Step 3: Now that both Restaurant and User exist, use AutoMigrate for remaining tables
 	// GORM can now properly handle all relationships
 	if err := db.AutoMigrate(
-		&models.Menu{},
+		&models.MenuCategory{},
 		&models.MenuItem{},
+		&models.MenuItemImage{},
 		&models.Reservation{},
 		&models.Order{},
 		&models.OrderItem{},
@@ -130,8 +131,9 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 func enableRLS(db *gorm.DB) error {
 	tables := []string{
 		"users",
-		"menus",
+		"menu_categories",
 		"menu_items",
+		"menu_item_images",
 		"reservations",
 		"orders",
 		"order_items",
@@ -167,12 +169,13 @@ func createRLSPolicies(db *gorm.DB) error {
 	// Create policies for each table
 	// Note: Users table needs special handling for platform organization (KAM users)
 	policies := map[string]string{
-		"users":        "(restaurant_id = current_setting('app.current_restaurant', true)::INTEGER) OR (restaurant_id = 1 AND current_setting('app.current_user_role', true) IN ('KAM', 'Admin'))",
-		"menus":        "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
-		"menu_items":   "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
-		"reservations": "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
-		"orders":       "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
-		"order_items":  "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
+		"users":            "(restaurant_id = current_setting('app.current_restaurant', true)::INTEGER) OR (restaurant_id = 1 AND current_setting('app.current_user_role', true) IN ('KAM', 'Admin'))",
+		"menu_categories":  "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
+		"menu_items":       "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
+		"menu_item_images": "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
+		"reservations":     "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
+		"orders":           "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
+		"order_items":      "restaurant_id = current_setting('app.current_restaurant', true)::INTEGER",
 	}
 
 	for table, condition := range policies {
