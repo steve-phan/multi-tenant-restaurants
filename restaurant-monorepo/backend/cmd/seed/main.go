@@ -77,6 +77,7 @@ func seedRestaurantData(db *gorm.DB, orgID, restaurantID uuid.UUID) {
 	// Create Menu Categories
 	categories := []string{"Starters", "Mains", "Desserts", "Drinks"}
 	var catIDs []uuid.UUID
+	var allItems []models.MenuItem
 
 	for k, catName := range categories {
 		cat := models.MenuCategory{
@@ -99,6 +100,7 @@ func seedRestaurantData(db *gorm.DB, orgID, restaurantID uuid.UUID) {
 				Price:          float64(10 + m*2),
 			}
 			db.Create(&item)
+			allItems = append(allItems, item)
 		}
 	}
 
@@ -125,5 +127,41 @@ func seedRestaurantData(db *gorm.DB, orgID, restaurantID uuid.UUID) {
 			Status:         models.BookingConfirmed,
 		}
 		db.Create(&booking)
+	}
+
+	// Create some dummy orders
+	// Need to have items to create orders
+	if len(allItems) > 0 {
+		for o := 1; o <= 5; o++ {
+			order := models.Order{
+				OrganizationID: orgID,
+				RestaurantID:   restaurantID,
+				Status:         models.OrderCompleted,
+				TotalAmount:    0,
+			}
+			db.Create(&order)
+
+			var totalAmount float64
+			// Add 1-3 items to order
+			numItems := rand.Intn(3) + 1
+			for k := 0; k < numItems; k++ {
+				// Pick random item
+				randomItem := allItems[rand.Intn(len(allItems))]
+				qty := rand.Intn(2) + 1
+
+				orderItem := models.OrderItem{
+					OrganizationID: orgID,
+					OrderID:        order.ID,
+					MenuItemID:     randomItem.ID,
+					Quantity:       qty,
+					UnitPrice:      randomItem.Price,
+				}
+				db.Create(&orderItem)
+				totalAmount += float64(qty) * randomItem.Price
+			}
+
+			// Update order total
+			db.Model(&order).Update("total_amount", totalAmount)
+		}
 	}
 }

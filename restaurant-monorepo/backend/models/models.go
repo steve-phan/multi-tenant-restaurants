@@ -49,9 +49,9 @@ type MenuCategory struct {
 	OrganizationID uuid.UUID `gorm:"type:uuid;not null;primaryKey"` // Added for partitioning
 	RestaurantID   uuid.UUID `gorm:"type:uuid;not null"`
 	Name           string    `gorm:"not null"`
-	DisplayOrder int
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	DisplayOrder   int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type MenuItem struct {
@@ -60,11 +60,11 @@ type MenuItem struct {
 	RestaurantID   uuid.UUID `gorm:"type:uuid;not null"`
 	CategoryID     uuid.UUID `gorm:"type:uuid;not null"`
 	Name           string    `gorm:"not null"`
-	Description  string
-	Price        float64 `gorm:"not null"`
-	ImageURL     string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	Description    string
+	Price          float64 `gorm:"not null"`
+	ImageURL       string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type Table struct {
@@ -72,9 +72,9 @@ type Table struct {
 	OrganizationID uuid.UUID `gorm:"type:uuid;not null;primaryKey"` // Added for partitioning
 	RestaurantID   uuid.UUID `gorm:"type:uuid;not null"`
 	Name           string    `gorm:"not null"`
-	Capacity     int       `gorm:"not null"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	Capacity       int       `gorm:"not null"`
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type BookingStatus string
@@ -115,13 +115,13 @@ type Order struct {
 	ID             uuid.UUID   `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	OrganizationID uuid.UUID   `gorm:"type:uuid;not null;primaryKey"` // Added for partitioning
 	RestaurantID   uuid.UUID   `gorm:"type:uuid;not null"`
-	CustomerID   *uuid.UUID  `gorm:"type:uuid"`
-	TableID      *uuid.UUID  `gorm:"type:uuid"`
-	Status       OrderStatus `gorm:"type:varchar(20);default:'PENDING'"`
-	TotalAmount  float64
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Items        []OrderItem `gorm:"foreignKey:OrderID"`
+	CustomerID     *uuid.UUID  `gorm:"type:uuid"`
+	TableID        *uuid.UUID  `gorm:"type:uuid"`
+	Status         OrderStatus `gorm:"type:varchar(20);default:'PENDING'"`
+	TotalAmount    float64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Items          []OrderItem `gorm:"foreignKey:OrderID,OrganizationID;references:ID,OrganizationID"`
 }
 
 type OrderItem struct {
@@ -129,6 +129,6 @@ type OrderItem struct {
 	OrganizationID uuid.UUID `gorm:"type:uuid;not null;primaryKey"` // Added for partitioning
 	OrderID        uuid.UUID `gorm:"type:uuid;not null"`
 	MenuItemID     uuid.UUID `gorm:"type:uuid;not null"`
-	Quantity   int       `gorm:"not null"`
-	UnitPrice  float64   `gorm:"not null"`
+	Quantity       int       `gorm:"not null"`
+	UnitPrice      float64   `gorm:"not null"`
 }

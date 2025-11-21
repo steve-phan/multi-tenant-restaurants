@@ -22,6 +22,7 @@ func CreateRestaurant(c *gin.Context) {
 		// For MVP testing, allow passing it or generate one if needed
 		// But ideally should come from authenticated user's org
 	}
+	/// restaurant Name : acb , abd, .... xyz, zypz
 
 	if err := database.DB.Create(&input).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
