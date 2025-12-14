@@ -175,6 +175,10 @@ func (h *RestaurantHandler) ActivateRestaurant(c *gin.Context) {
 	})
 }
 
+type UpdateRestaurantStatusRequest struct {
+	Status models.RestaurantStatus `form:"status" binding:"required, oneof =pending active inactive suspended"`
+}
+
 // UpdateRestaurantStatus handles updating restaurant status (KAM/Admin only)
 // @Summary Update Restaurant Status
 // @Description Update the status of a restaurant
@@ -194,28 +198,13 @@ func (h *RestaurantHandler) UpdateRestaurantStatus(c *gin.Context) {
 		return
 	}
 
-	var req map[string]string
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req UpdateRestaurantStatusRequest
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid the status value. It must be one of: pending, active, inactive, suspended."})
 		return
 	}
 
-	statusStr, exists := req["status"]
-	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
-		return
-	}
-
-	status := models.RestaurantStatus(statusStr)
-	if status != models.RestaurantStatusPending &&
-		status != models.RestaurantStatusActive &&
-		status != models.RestaurantStatusInactive &&
-		status != models.RestaurantStatusSuspended {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
-		return
-	}
-
-	restaurant, err := h.restaurantService.UpdateRestaurantStatus(uint(id), status)
+	restaurant, err := h.restaurantService.UpdateRestaurantStatus(uint(id), req.Status)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

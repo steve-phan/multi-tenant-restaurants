@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	"restaurant-backend/internal/services"
@@ -66,13 +67,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		}
 
 		role := userRole.(string)
-		hasRole := false
-		for _, requiredRole := range roles {
-			if role == requiredRole {
-				hasRole = true
-				break
-			}
-		}
+		hasRole := slices.Contains(roles, role)
 
 		if !hasRole {
 			c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})

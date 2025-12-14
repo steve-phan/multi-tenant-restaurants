@@ -32,8 +32,7 @@ func setupRestaurantRoutes(api *gin.RouterGroup, protected *gin.RouterGroup, db 
 		restaurants.GET("/pending", restaurantHandler.ListPendingRestaurants)
 		restaurants.GET("/:id", restaurantHandler.GetRestaurant)
 		restaurants.POST("/:id/activate", restaurantHandler.ActivateRestaurant)
-		restaurants.PUT("/:id/status", restaurantHandler.UpdateRestaurantStatus)
+		restaurants.PATCH("/:id/status", restaurantHandler.UpdateRestaurantStatus)
 		restaurants.PUT("/:id/assign-kam", restaurantHandler.AssignKAM)
 	}
 }
-
