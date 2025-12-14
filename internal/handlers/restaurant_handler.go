@@ -176,7 +176,7 @@ func (h *RestaurantHandler) ActivateRestaurant(c *gin.Context) {
 }
 
 type UpdateRestaurantStatusRequest struct {
-	Status models.RestaurantStatus `form:"status" binding:"required, oneof =pending active inactive suspended"`
+	Status models.RestaurantStatus `form:"status" binding:"required,oneof=pending active inactive suspended"`
 }
 
 // UpdateRestaurantStatus handles updating restaurant status (KAM/Admin only)
