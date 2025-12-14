@@ -55,7 +55,6 @@ func (s *RestaurantService) RegisterRestaurant(req *RegisterRestaurantRequest) (
 		Phone:        req.Phone,
 		Email:        req.Email,
 		Status:       models.RestaurantStatusPending,
-		IsActive:     false,
 		ContactName:  req.ContactName,
 		ContactEmail: req.ContactEmail,
 		ContactPhone: req.ContactPhone,
@@ -92,7 +91,6 @@ func (s *RestaurantService) ActivateRestaurant(restaurantID uint, activatedBy ui
 	// Activate restaurant
 	now := time.Now()
 	restaurant.Status = models.RestaurantStatusActive
-	restaurant.IsActive = true
 	restaurant.ActivatedBy = &activatedBy
 	restaurant.ActivatedAt = &now
 
@@ -116,7 +114,6 @@ func (s *RestaurantService) UpdateRestaurantStatus(restaurantID uint, status mod
 	}
 
 	restaurant.Status = status
-	restaurant.IsActive = (status == models.RestaurantStatusActive)
 
 	if err := s.restaurantRepo.Update(restaurant); err != nil {
 		return nil, err

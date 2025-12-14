@@ -22,12 +22,12 @@ func NewReservationService(reservationRepo *repositories.ReservationRepository) 
 
 // CreateReservationRequest represents reservation creation request
 type CreateReservationRequest struct {
-	UserID        uint      `json:"user_id" binding:"required"`
-	TableNumber   string    `json:"table_number" binding:"required"`
-	StartTime     time.Time `json:"start_time" binding:"required"`
-	EndTime       time.Time `json:"end_time" binding:"required"`
-	NumberOfGuests int      `json:"number_of_guests" binding:"required,min=1"`
-	Notes         string    `json:"notes"`
+	UserID         uint      `json:"user_id" binding:"required"`
+	TableNumber    string    `json:"table_number" binding:"required"`
+	StartTime      time.Time `json:"start_time" binding:"required"`
+	EndTime        time.Time `json:"end_time" binding:"required"`
+	NumberOfGuests int       `json:"number_of_guests" binding:"required,min=1"`
+	Notes          string    `json:"notes"`
 }
 
 // CreateReservation creates a new reservation with availability checking
@@ -53,14 +53,14 @@ func (s *ReservationService) CreateReservation(req *CreateReservationRequest, re
 
 	// Create reservation
 	reservation := &models.Reservation{
-		RestaurantID:  restaurantID,
-		UserID:        req.UserID,
-		TableNumber:   req.TableNumber,
-		StartTime:     req.StartTime,
-		EndTime:       req.EndTime,
+		RestaurantID:   restaurantID,
+		UserID:         req.UserID,
+		TableNumber:    req.TableNumber,
+		StartTime:      req.StartTime,
+		EndTime:        req.EndTime,
 		NumberOfGuests: req.NumberOfGuests,
-		Status:        "pending",
-		Notes:         req.Notes,
+		Status:         "pending",
+		Notes:          req.Notes,
 	}
 
 	if err := s.reservationRepo.Create(reservation); err != nil {
@@ -102,4 +102,3 @@ func (s *ReservationService) checkTableAvailability(restaurantID uint, tableNumb
 	// If there are any conflicting reservations, table is not available
 	return len(conflictingReservations) == 0, nil
 }
-

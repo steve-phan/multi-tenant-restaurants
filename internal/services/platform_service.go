@@ -39,7 +39,6 @@ func (s *PlatformService) InitializePlatformOrganization() error {
 		Name:        "Platform Organization",
 		Description: "Platform-level organization for KAM and system administrators",
 		Status:      models.RestaurantStatusActive,
-		IsActive:    true,
 		Email:       "platform@system.local",
 	}
 
@@ -128,4 +127,3 @@ func (s *PlatformService) ListKAMs() ([]models.User, error) {
 
 	return kams, nil
 }
-
