@@ -17,9 +17,9 @@ type User struct {
 	IsActive     bool      `gorm:"default:true" json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
-	
+
 	// Relationships
-	Restaurant Restaurant `gorm:"foreignKey:RestaurantID"`
+	Restaurant *Restaurant `gorm:"foreignKey:RestaurantID" json:"restaurant,omitempty"`
 }
 
 // IsKAM checks if user is a KAM
@@ -31,4 +31,3 @@ func (u *User) IsKAM() bool {
 func (u *User) IsPlatformUser() bool {
 	return u.RestaurantID == PlatformOrganizationID
 }
-

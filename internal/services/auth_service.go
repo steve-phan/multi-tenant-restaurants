@@ -52,7 +52,7 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	var user models.User
 
 	// Find user by email
-	if err := s.db.Where("email = ? AND is_active = ?", req.Email, true).First(&user).Error; err != nil {
+	if err := s.db.Preload("Restaurant").Where("email = ? AND is_active = ?", req.Email, true).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid credentials")
 		}
