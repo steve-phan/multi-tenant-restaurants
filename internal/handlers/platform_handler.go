@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -45,15 +45,15 @@ func (h *PlatformHandler) CreateKAM(c *gin.Context) {
 		return
 	}
 
-	// Get creator user ID from context
-	createdBy, exists := c.Get(middleware.UserIDKey)
-	if !exists {
+	// Get creator user ID from request context
+	createdBy, ok := ctx.GetUserID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "user context not found"})
 		return
 	}
 
 	// Create KAM user structure
-	user, err := h.platformService.CreateKAM(&req, createdBy.(uint))
+	user, err := h.platformService.CreateKAM(&req, createdBy)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "only platform KAMs or Admins can create new KAM users" {
@@ -100,4 +100,3 @@ func (h *PlatformHandler) ListKAMs(c *gin.Context) {
 
 	c.JSON(http.StatusOK, kams)
 }
-

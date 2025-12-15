@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/repositories"
 	"restaurant-backend/internal/services"
@@ -146,16 +146,16 @@ func (h *RestaurantHandler) ActivateRestaurant(c *gin.Context) {
 		return
 	}
 
-	// Get user who is activating (from context set by auth middleware)
+	// Get user who is activating (from request context set by auth middleware)
 	// This user must be a KAM (enforced by middleware)
-	activatedBy, exists := c.Get(middleware.UserIDKey)
-	if !exists {
+	activatedBy, ok := ctx.GetUserID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "user context not found"})
 		return
 	}
 
 	// Activate restaurant - no request body needed, KAM ID comes from token
-	restaurant, err := h.restaurantService.ActivateRestaurant(c.Request.Context(), uint(id), activatedBy.(uint))
+	restaurant, err := h.restaurantService.ActivateRestaurant(c.Request.Context(), uint(id), activatedBy)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "restaurant not found" {
