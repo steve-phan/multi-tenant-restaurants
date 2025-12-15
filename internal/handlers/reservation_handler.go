@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/repositories"
 	"restaurant-backend/internal/services"
 
@@ -47,13 +47,13 @@ func (h *ReservationHandler) CreateReservation(c *gin.Context) {
 		return
 	}
 
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
-	reservation, err := h.reservationService.CreateReservation(c.Request.Context(), &req, restaurantID.(uint))
+	reservation, err := h.reservationService.CreateReservation(c.Request.Context(), &req, restaurantID)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "table is not available at the requested time" {
@@ -100,8 +100,8 @@ func (h *ReservationHandler) GetReservation(c *gin.Context) {
 // @Success 200 {array} models.Reservation
 // @Router /api/v1/reservations [get]
 func (h *ReservationHandler) ListReservations(c *gin.Context) {
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
@@ -111,7 +111,7 @@ func (h *ReservationHandler) ListReservations(c *gin.Context) {
 	if dateParam != "" {
 		date, err := time.Parse("2006-01-02", dateParam)
 		if err == nil {
-			reservations, err := h.reservationRepo.GetByDateWithContext(c.Request.Context(), restaurantID.(uint), date)
+			reservations, err := h.reservationRepo.GetByDateWithContext(c.Request.Context(), restaurantID, date)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -122,7 +122,7 @@ func (h *ReservationHandler) ListReservations(c *gin.Context) {
 	}
 
 	// Otherwise, get all reservations for the restaurant
-	reservations, err := h.reservationRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID.(uint))
+	reservations, err := h.reservationRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

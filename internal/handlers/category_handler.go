@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/dto"
-	"restaurant-backend/internal/middleware"
 	"restaurant-backend/internal/repositories"
 	"restaurant-backend/internal/services"
 	"strconv"
@@ -44,14 +44,14 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	}
 
 	// Get restaurant ID from context (set by middleware)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
 	// Create category using service
-	category, err := h.categoryService.CreateCategory(c.Request.Context(), &req, restaurantID.(uint))
+	category, err := h.categoryService.CreateCategory(c.Request.Context(), &req, restaurantID)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "category name already taken" {
@@ -97,13 +97,13 @@ func (h *CategoryHandler) GetCategory(c *gin.Context) {
 // @Success 200 {array} models.MenuCategory
 // @Router /api/v1/categories [get]
 func (h *CategoryHandler) ListCategories(c *gin.Context) {
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
-	categories, err := h.categoryRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID.(uint))
+	categories, err := h.categoryRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -139,14 +139,14 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	}
 
 	// Get restaurant ID from context (set by middleware)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
 	// Update category using service (with ownership validation)
-	category, err := h.categoryService.UpdateCategory(c.Request.Context(), uint(id), &req, restaurantID.(uint))
+	category, err := h.categoryService.UpdateCategory(c.Request.Context(), uint(id), &req, restaurantID)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "category not found" {
