@@ -51,7 +51,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	}
 
 	// Create category using service
-	category, err := h.categoryService.CreateCategory(&req, restaurantID.(uint))
+	category, err := h.categoryService.CreateCategory(c.Request.Context(), &req, restaurantID.(uint))
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "category name already taken" {
@@ -80,7 +80,7 @@ func (h *CategoryHandler) GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryRepo.GetByID(uint(id))
+	category, err := h.categoryRepo.GetByIDWithContext(c.Request.Context(), uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
@@ -103,7 +103,7 @@ func (h *CategoryHandler) ListCategories(c *gin.Context) {
 		return
 	}
 
-	categories, err := h.categoryRepo.GetByRestaurantID(restaurantID.(uint))
+	categories, err := h.categoryRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID.(uint))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -146,7 +146,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	}
 
 	// Update category using service (with ownership validation)
-	category, err := h.categoryService.UpdateCategory(uint(id), &req, restaurantID.(uint))
+	category, err := h.categoryService.UpdateCategory(c.Request.Context(), uint(id), &req, restaurantID.(uint))
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "category not found" {
@@ -174,7 +174,7 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := h.categoryRepo.Delete(uint(id)); err != nil {
+	if err := h.categoryRepo.DeleteWithContext(c.Request.Context(), uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

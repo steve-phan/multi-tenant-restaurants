@@ -51,7 +51,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	order, err := h.orderService.CreateOrder(&req, restaurantID.(uint))
+	order, err := h.orderService.CreateOrder(c.Request.Context(), &req, restaurantID.(uint))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -76,7 +76,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 		return
 	}
 
-	order, err := h.orderRepo.GetByID(uint(id))
+	order, err := h.orderRepo.GetByIDWithContext(c.Request.Context(), uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
 		return
@@ -105,7 +105,7 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 	if userIDParam != "" {
 		userID, err := strconv.ParseUint(userIDParam, 10, 32)
 		if err == nil {
-			orders, err := h.orderRepo.GetByUserID(restaurantID.(uint), uint(userID))
+			orders, err := h.orderRepo.GetByUserIDWithContext(c.Request.Context(), restaurantID.(uint), uint(userID))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -116,7 +116,7 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 	}
 
 	// Otherwise, get all orders for the restaurant
-	orders, err := h.orderRepo.GetByRestaurantID(restaurantID.(uint))
+	orders, err := h.orderRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID.(uint))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -150,7 +150,7 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	order, err := h.orderService.UpdateOrderStatus(uint(id), &req)
+	order, err := h.orderService.UpdateOrderStatusWithCtx(c.Request.Context(), uint(id), &req)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -158,4 +158,3 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, order)
 }
-

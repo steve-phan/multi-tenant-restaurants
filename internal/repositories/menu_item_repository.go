@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"restaurant-backend/internal/models"
 	"strings"
 
@@ -22,6 +23,11 @@ func (r *MenuItemRepository) Create(menuItem *models.MenuItem) error {
 	return r.db.Create(menuItem).Error
 }
 
+// CreateWithContext creates a new menu item using the provided context
+func (r *MenuItemRepository) CreateWithContext(ctx context.Context, menuItem *models.MenuItem) error {
+	return r.db.WithContext(ctx).Create(menuItem).Error
+}
+
 // GetByID retrieves a menu item by ID (RLS ensures tenant isolation)
 // Includes images ordered by display_order
 func (r *MenuItemRepository) GetByID(id uint) (*models.MenuItem, error) {
@@ -35,9 +41,29 @@ func (r *MenuItemRepository) GetByID(id uint) (*models.MenuItem, error) {
 	return &menuItem, nil
 }
 
+// GetByIDWithContext retrieves a menu item by ID using the provided context
+func (r *MenuItemRepository) GetByIDWithContext(ctx context.Context, id uint) (*models.MenuItem, error) {
+	var menuItem models.MenuItem
+	if err := r.db.WithContext(ctx).Preload("Images").
+		Preload("Category").
+		First(&menuItem, id).Error; err != nil {
+		return nil, err
+	}
+	return &menuItem, nil
+}
+
 func (r *MenuItemRepository) GetByName(name string) (*models.MenuItem, error) {
 	var menuItem models.MenuItem
 	if err := r.db.Where("lower(name) = lower(?)", strings.TrimSpace(name)).First(&menuItem).Error; err != nil {
+		return nil, err
+	}
+	return &menuItem, nil
+}
+
+// GetByNameWithContext retrieves a menu item by name using the provided context
+func (r *MenuItemRepository) GetByNameWithContext(ctx context.Context, name string) (*models.MenuItem, error) {
+	var menuItem models.MenuItem
+	if err := r.db.WithContext(ctx).Where("lower(name) = lower(?)", strings.TrimSpace(name)).First(&menuItem).Error; err != nil {
 		return nil, err
 	}
 	return &menuItem, nil
@@ -56,11 +82,34 @@ func (r *MenuItemRepository) GetByIDPublic(id uint, restaurantID uint) (*models.
 	return &menuItem, nil
 }
 
+// GetByIDPublicWithContext retrieves a menu item by ID for public access using context
+func (r *MenuItemRepository) GetByIDPublicWithContext(ctx context.Context, id uint, restaurantID uint) (*models.MenuItem, error) {
+	var menuItem models.MenuItem
+	if err := r.db.WithContext(ctx).Where("id = ? AND restaurant_id = ?", id, restaurantID).
+		Preload("Images").
+		Preload("Category").
+		First(&menuItem).Error; err != nil {
+		return nil, err
+	}
+	return &menuItem, nil
+}
+
 // GetByCategoryID retrieves all menu items for a category (RLS ensures tenant isolation)
 // Ordered by display_order, includes images
 func (r *MenuItemRepository) GetByCategoryID(categoryID uint) ([]models.MenuItem, error) {
 	var menuItems []models.MenuItem
 	if err := r.db.Where("category_id = ?", categoryID).
+		Preload("Images").
+		Order("display_order ASC").Find(&menuItems).Error; err != nil {
+		return nil, err
+	}
+	return menuItems, nil
+}
+
+// GetByCategoryIDWithContext retrieves menu items by category using context
+func (r *MenuItemRepository) GetByCategoryIDWithContext(ctx context.Context, categoryID uint) ([]models.MenuItem, error) {
+	var menuItems []models.MenuItem
+	if err := r.db.WithContext(ctx).Where("category_id = ?", categoryID).
 		Preload("Images").
 		Order("display_order ASC").Find(&menuItems).Error; err != nil {
 		return nil, err
@@ -82,6 +131,19 @@ func (r *MenuItemRepository) GetByRestaurantID(restaurantID uint) ([]models.Menu
 	return menuItems, nil
 }
 
+// GetByRestaurantIDWithContext retrieves menu items for a restaurant using context
+func (r *MenuItemRepository) GetByRestaurantIDWithContext(ctx context.Context, restaurantID uint) ([]models.MenuItem, error) {
+	var menuItems []models.MenuItem
+	if err := r.db.WithContext(ctx).Where("restaurant_id = ?", restaurantID).
+		Preload("Images").
+		Preload("Category").
+		Order("category_id, display_order ASC").
+		Find(&menuItems).Error; err != nil {
+		return nil, err
+	}
+	return menuItems, nil
+}
+
 // Update updates an existing menu item using provided updates map (only updates fields in the map)
 func (r *MenuItemRepository) Update(id uint, updates map[string]interface{}) error {
 	if len(updates) == 0 {
@@ -90,7 +152,20 @@ func (r *MenuItemRepository) Update(id uint, updates map[string]interface{}) err
 	return r.db.Model(&models.MenuItem{}).Where("id = ?", id).Updates(updates).Error
 }
 
+// UpdateWithContext updates a menu item using the provided context
+func (r *MenuItemRepository) UpdateWithContext(ctx context.Context, id uint, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Model(&models.MenuItem{}).Where("id = ?", id).Updates(updates).Error
+}
+
 // Delete deletes a menu item
 func (r *MenuItemRepository) Delete(id uint) error {
 	return r.db.Delete(&models.MenuItem{}, id).Error
+}
+
+// DeleteWithContext deletes a menu item using the provided context
+func (r *MenuItemRepository) DeleteWithContext(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&models.MenuItem{}, id).Error
 }
