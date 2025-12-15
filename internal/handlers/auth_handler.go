@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response, err := h.authService.Login(&req)
+	// pass request context down to service for cancellation/traceability
+	response, err := h.authService.Login(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -66,17 +68,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	// RestaurantID is required for non-KAM users
-	// If not provided, try to get from context (for protected routes)
+	// If not provided, try to get from request context (for protected routes)
 	if req.RestaurantID == 0 {
-		restaurantIDValue, exists := c.Get("restaurant_id")
-		if exists && restaurantIDValue != nil {
-			if rid, ok := restaurantIDValue.(uint); ok {
-				req.RestaurantID = rid
-			}
+		if rid, ok := ctx.GetRestaurantID(c.Request.Context()); ok {
+			req.RestaurantID = rid
 		}
 	}
 
-	user, err := h.authService.Register(&req)
+	user, err := h.authService.Register(c.Request.Context(), &req)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "user with this email already exists" {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/repositories"
 
@@ -47,14 +47,14 @@ func (h *MenuItemImageHandler) CreateMenuItemImage(c *gin.Context) {
 		return
 	}
 
-	// Get restaurant ID from context (set by middleware)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	// Get restaurant ID from request context (set by middleware)
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
-	image.RestaurantID = restaurantID.(uint)
+	image.RestaurantID = restaurantID
 	image.MenuItemID = uint(itemID)
 
 	// Create the image
@@ -150,4 +150,3 @@ func (h *MenuItemImageHandler) SetPrimaryImage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Primary image updated successfully"})
 }
-

@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
 	"time"
 
-	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -36,9 +35,9 @@ func NewImageHandler(s3Service *services.S3Service) *ImageHandler {
 // @Failure 400 {object} map[string]string
 // @Router /api/v1/images/upload [post]
 func (h *ImageHandler) UploadImage(c *gin.Context) {
-	// Get restaurant ID from context
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	// Get restaurant ID from request context (set by middleware)
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
@@ -91,9 +90,8 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 		contentType = "image/webp"
 	}
 
-	// Upload to S3
-	ctx := context.Background()
-	key, err := h.s3Service.UploadFile(ctx, restaurantID.(uint), file.Filename, contentType, src)
+	// Upload to S3 using request context
+	key, err := h.s3Service.UploadFile(c.Request.Context(), restaurantID, file.Filename, contentType, src)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to upload file: %v", err)})
 		return
@@ -122,23 +120,22 @@ func (h *ImageHandler) GetImageURL(c *gin.Context) {
 		return
 	}
 
-	// Get restaurant ID from context for validation (ensure tenant can only access their own images)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	// Get restaurant ID from request context for validation (ensure tenant can only access their own images)
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
 	// Validate that the key belongs to the restaurant
-	expectedPrefix := fmt.Sprintf("restaurant-%d/", restaurantID.(uint))
+	expectedPrefix := fmt.Sprintf("restaurant-%d/", restaurantID)
 	if len(key) < len(expectedPrefix) || key[:len(expectedPrefix)] != expectedPrefix {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 
 	// Generate presigned URL (valid for 1 hour)
-	ctx := context.Background()
-	url, err := h.s3Service.GeneratePresignedURL(ctx, key, time.Hour)
+	url, err := h.s3Service.GeneratePresignedURL(c.Request.Context(), key, time.Hour)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate URL"})
 		return
@@ -166,27 +163,25 @@ func (h *ImageHandler) DeleteImage(c *gin.Context) {
 		return
 	}
 
-	// Get restaurant ID from context for validation
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	// Get restaurant ID from request context for validation
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
 	// Validate that the key belongs to the restaurant
-	expectedPrefix := fmt.Sprintf("restaurant-%d/", restaurantID.(uint))
+	expectedPrefix := fmt.Sprintf("restaurant-%d/", restaurantID)
 	if len(key) < len(expectedPrefix) || key[:len(expectedPrefix)] != expectedPrefix {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 
 	// Delete from S3
-	ctx := context.Background()
-	if err := h.s3Service.DeleteFile(ctx, key); err != nil {
+	if err := h.s3Service.DeleteFile(c.Request.Context(), key); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete file"})
 		return
 	}
 
 	c.Status(http.StatusNoContent)
 }
-

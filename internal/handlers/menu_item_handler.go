@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"restaurant-backend/internal/ctx"
 	"restaurant-backend/internal/dto"
-	"restaurant-backend/internal/middleware"
 	"restaurant-backend/internal/repositories"
 	"restaurant-backend/internal/services"
 
@@ -45,14 +45,14 @@ func (h *MenuItemHandler) CreateMenuItem(c *gin.Context) {
 	}
 
 	// Get restaurant ID from context (set by middleware)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
 	// Create menu item using service
-	menuItem, err := h.menuItemService.CreateMenuItem(&req, restaurantID.(uint))
+	menuItem, err := h.menuItemService.CreateMenuItem(c.Request.Context(), &req, restaurantID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -77,7 +77,7 @@ func (h *MenuItemHandler) GetMenuItem(c *gin.Context) {
 		return
 	}
 
-	menuItem, err := h.menuItemRepo.GetByID(uint(id))
+	menuItem, err := h.menuItemRepo.GetByIDWithContext(c.Request.Context(), uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "menu item not found"})
 		return
@@ -95,8 +95,8 @@ func (h *MenuItemHandler) GetMenuItem(c *gin.Context) {
 // @Success 200 {array} models.MenuItem
 // @Router /api/v1/menu-items [get]
 func (h *MenuItemHandler) ListMenuItems(c *gin.Context) {
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
@@ -106,7 +106,7 @@ func (h *MenuItemHandler) ListMenuItems(c *gin.Context) {
 	if categoryIDParam != "" {
 		categoryID, err := strconv.ParseUint(categoryIDParam, 10, 32)
 		if err == nil {
-			menuItems, err := h.menuItemRepo.GetByCategoryID(uint(categoryID))
+			menuItems, err := h.menuItemRepo.GetByCategoryIDWithContext(c.Request.Context(), uint(categoryID))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -117,7 +117,7 @@ func (h *MenuItemHandler) ListMenuItems(c *gin.Context) {
 	}
 
 	// Otherwise, get all menu items for the restaurant
-	menuItems, err := h.menuItemRepo.GetByRestaurantID(restaurantID.(uint))
+	menuItems, err := h.menuItemRepo.GetByRestaurantIDWithContext(c.Request.Context(), restaurantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -153,14 +153,14 @@ func (h *MenuItemHandler) UpdateMenuItem(c *gin.Context) {
 	}
 
 	// Get restaurant ID from context (set by middleware)
-	restaurantID, exists := c.Get(middleware.RestaurantIDKey)
-	if !exists {
+	restaurantID, ok := ctx.GetRestaurantID(c.Request.Context())
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "restaurant_id not found in context"})
 		return
 	}
 
 	// Update menu item using service (with ownership validation)
-	menuItem, err := h.menuItemService.UpdateMenuItem(uint(id), &req, restaurantID.(uint))
+	menuItem, err := h.menuItemService.UpdateMenuItem(c.Request.Context(), uint(id), &req, restaurantID)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "menu item not found" {
@@ -188,7 +188,7 @@ func (h *MenuItemHandler) DeleteMenuItem(c *gin.Context) {
 		return
 	}
 
-	if err := h.menuItemRepo.Delete(uint(id)); err != nil {
+	if err := h.menuItemRepo.DeleteWithContext(c.Request.Context(), uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

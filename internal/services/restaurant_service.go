@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -38,9 +39,9 @@ type RegisterRestaurantRequest struct {
 }
 
 // RegisterRestaurant creates a new restaurant in pending status
-func (s *RestaurantService) RegisterRestaurant(req *RegisterRestaurantRequest) (*models.Restaurant, error) {
+func (s *RestaurantService) RegisterRestaurant(ctx context.Context, req *RegisterRestaurantRequest) (*models.Restaurant, error) {
 	// Check if restaurant with same email already exists
-	existing, _ := s.restaurantRepo.GetByEmail(req.Email)
+	existing, _ := s.restaurantRepo.GetByEmailWithContext(ctx, req.Email)
 	if existing != nil {
 		return nil, errors.New("restaurant with this email already exists")
 	}
@@ -60,7 +61,7 @@ func (s *RestaurantService) RegisterRestaurant(req *RegisterRestaurantRequest) (
 		ContactPhone: req.ContactPhone,
 	}
 
-	if err := s.restaurantRepo.Create(restaurant); err != nil {
+	if err := s.restaurantRepo.CreateWithContext(ctx, restaurant); err != nil {
 		return nil, err
 	}
 
@@ -70,9 +71,9 @@ func (s *RestaurantService) RegisterRestaurant(req *RegisterRestaurantRequest) (
 // ActivateRestaurant activates a pending restaurant
 // The activating user (KAM) is passed as activatedBy
 // If no KAM is assigned, the activating KAM becomes the assigned KAM
-func (s *RestaurantService) ActivateRestaurant(restaurantID uint, activatedBy uint) (*models.Restaurant, error) {
+func (s *RestaurantService) ActivateRestaurant(ctx context.Context, restaurantID uint, activatedBy uint) (*models.Restaurant, error) {
 	// Get restaurant
-	restaurant, err := s.restaurantRepo.GetByID(restaurantID)
+	restaurant, err := s.restaurantRepo.GetByIDWithContext(ctx, restaurantID)
 	if err != nil {
 		return nil, errors.New("restaurant not found")
 	}
@@ -83,7 +84,7 @@ func (s *RestaurantService) ActivateRestaurant(restaurantID uint, activatedBy ui
 	}
 
 	// Verify the activating user is a KAM
-	activatingUser, err := s.userRepo.GetByID(activatedBy)
+	activatingUser, err := s.userRepo.GetByIDWithContext(ctx, activatedBy)
 	if err != nil || activatingUser.Role != "KAM" {
 		return nil, errors.New("only KAM users can activate restaurants")
 	}
@@ -99,7 +100,7 @@ func (s *RestaurantService) ActivateRestaurant(restaurantID uint, activatedBy ui
 		restaurant.KAMID = &activatedBy
 	}
 
-	if err := s.restaurantRepo.Update(restaurant); err != nil {
+	if err := s.restaurantRepo.UpdateWithContext(ctx, restaurant); err != nil {
 		return nil, err
 	}
 
@@ -107,15 +108,15 @@ func (s *RestaurantService) ActivateRestaurant(restaurantID uint, activatedBy ui
 }
 
 // UpdateRestaurantStatus updates the status of a restaurant
-func (s *RestaurantService) UpdateRestaurantStatus(restaurantID uint, status models.RestaurantStatus) (*models.Restaurant, error) {
-	restaurant, err := s.restaurantRepo.GetByID(restaurantID)
+func (s *RestaurantService) UpdateRestaurantStatus(ctx context.Context, restaurantID uint, status models.RestaurantStatus) (*models.Restaurant, error) {
+	restaurant, err := s.restaurantRepo.GetByIDWithContext(ctx, restaurantID)
 	if err != nil {
 		return nil, errors.New("restaurant not found")
 	}
 
 	restaurant.Status = status
 
-	if err := s.restaurantRepo.Update(restaurant); err != nil {
+	if err := s.restaurantRepo.UpdateWithContext(ctx, restaurant); err != nil {
 		return nil, err
 	}
 
@@ -123,15 +124,15 @@ func (s *RestaurantService) UpdateRestaurantStatus(restaurantID uint, status mod
 }
 
 // AssignKAM assigns a Key Account Manager to a restaurant
-func (s *RestaurantService) AssignKAM(restaurantID uint, kamID uint) (*models.Restaurant, error) {
+func (s *RestaurantService) AssignKAM(ctx context.Context, restaurantID uint, kamID uint) (*models.Restaurant, error) {
 	// Verify KAM exists and is a KAM
-	kam, err := s.userRepo.GetByID(kamID)
+	kam, err := s.userRepo.GetByIDWithContext(ctx, kamID)
 	if err != nil || kam.Role != "KAM" {
 		return nil, errors.New("invalid KAM")
 	}
 
 	// Get restaurant
-	restaurant, err := s.restaurantRepo.GetByID(restaurantID)
+	restaurant, err := s.restaurantRepo.GetByIDWithContext(ctx, restaurantID)
 	if err != nil {
 		return nil, errors.New("restaurant not found")
 	}
@@ -139,7 +140,7 @@ func (s *RestaurantService) AssignKAM(restaurantID uint, kamID uint) (*models.Re
 	// Assign KAM
 	restaurant.KAMID = &kamID
 
-	if err := s.restaurantRepo.Update(restaurant); err != nil {
+	if err := s.restaurantRepo.UpdateWithContext(ctx, restaurant); err != nil {
 		return nil, err
 	}
 

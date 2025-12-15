@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -22,7 +23,7 @@ func NewMenuItemService(menuItemRepo *repositories.MenuItemRepository) *MenuItem
 }
 
 // CreateMenuItem creates a new menu item
-func (s *MenuItemService) CreateMenuItem(req *dto.CreateMenuItemRequest, restaurantID uint) (*models.MenuItem, error) {
+func (s *MenuItemService) CreateMenuItem(ctx context.Context, req *dto.CreateMenuItemRequest, restaurantID uint) (*models.MenuItem, error) {
 	// Validate required fields
 	if req.Name == "" {
 		return nil, errors.New("name is required")
@@ -35,7 +36,7 @@ func (s *MenuItemService) CreateMenuItem(req *dto.CreateMenuItemRequest, restaur
 	}
 
 	// Check if name is already taken
-	if _, err := s.menuItemRepo.GetByName(req.Name); err == nil {
+	if _, err := s.menuItemRepo.GetByNameWithContext(ctx, req.Name); err == nil {
 		return nil, errors.New("name already taken")
 	}
 
@@ -50,18 +51,18 @@ func (s *MenuItemService) CreateMenuItem(req *dto.CreateMenuItemRequest, restaur
 		IsAvailable:  req.IsAvailable,
 	}
 
-	if err := s.menuItemRepo.Create(menuItem); err != nil {
+	if err := s.menuItemRepo.CreateWithContext(ctx, menuItem); err != nil {
 		return nil, err
 	}
 
 	// Fetch created item with relationships
-	return s.menuItemRepo.GetByID(menuItem.ID)
+	return s.menuItemRepo.GetByIDWithContext(ctx, menuItem.ID)
 }
 
 // UpdateMenuItem updates a menu item (only updates provided fields)
-func (s *MenuItemService) UpdateMenuItem(id uint, req *dto.UpdateMenuItemRequest, restaurantID uint) (*models.MenuItem, error) {
+func (s *MenuItemService) UpdateMenuItem(ctx context.Context, id uint, req *dto.UpdateMenuItemRequest, restaurantID uint) (*models.MenuItem, error) {
 	// Verify menu item exists
-	menuItem, err := s.menuItemRepo.GetByID(id)
+	menuItem, err := s.menuItemRepo.GetByIDWithContext(ctx, id)
 	if err != nil {
 		return nil, errors.New("menu item not found")
 	}
@@ -80,7 +81,7 @@ func (s *MenuItemService) UpdateMenuItem(id uint, req *dto.UpdateMenuItemRequest
 			return nil, errors.New("name cannot be empty")
 		}
 		// Validate name is not already taken
-		if _, err := s.menuItemRepo.GetByName(*req.Name); err == nil {
+		if _, err := s.menuItemRepo.GetByNameWithContext(ctx, *req.Name); err == nil {
 			return nil, errors.New("name already taken")
 		}
 		updates["name"] = *req.Name
@@ -112,10 +113,10 @@ func (s *MenuItemService) UpdateMenuItem(id uint, req *dto.UpdateMenuItemRequest
 	}
 
 	// Update the menu item
-	if err := s.menuItemRepo.Update(id, updates); err != nil {
+	if err := s.menuItemRepo.UpdateWithContext(ctx, id, updates); err != nil {
 		return nil, err
 	}
 
 	// Fetch and return updated menu item
-	return s.menuItemRepo.GetByID(id)
+	return s.menuItemRepo.GetByIDWithContext(ctx, id)
 }

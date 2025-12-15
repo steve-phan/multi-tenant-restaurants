@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -22,7 +23,7 @@ func NewCategoryService(categoryRepo *repositories.CategoryRepository) *Category
 }
 
 // CreateCategory creates a new category
-func (s *CategoryService) CreateCategory(req *dto.CreateCategoryRequest, restaurantID uint) (*models.MenuCategory, error) {
+func (s *CategoryService) CreateCategory(ctx context.Context, req *dto.CreateCategoryRequest, restaurantID uint) (*models.MenuCategory, error) {
 	// Trim name
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
@@ -30,7 +31,7 @@ func (s *CategoryService) CreateCategory(req *dto.CreateCategoryRequest, restaur
 	}
 
 	// Check if name already exists for this restaurant
-	existing, _ := s.categoryRepo.GetByName(name)
+	existing, _ := s.categoryRepo.GetByNameWithContext(ctx, name)
 	if existing != nil && existing.RestaurantID == restaurantID {
 		return nil, errors.New("category name already taken")
 	}
@@ -43,7 +44,7 @@ func (s *CategoryService) CreateCategory(req *dto.CreateCategoryRequest, restaur
 		IsActive:     req.IsActive,
 	}
 
-	if err := s.categoryRepo.Create(category); err != nil {
+	if err := s.categoryRepo.CreateWithContext(ctx, category); err != nil {
 		return nil, err
 	}
 
@@ -51,9 +52,9 @@ func (s *CategoryService) CreateCategory(req *dto.CreateCategoryRequest, restaur
 }
 
 // UpdateCategory updates a category (only updates provided fields)
-func (s *CategoryService) UpdateCategory(id uint, req *dto.UpdateCategoryRequest, restaurantID uint) (*models.MenuCategory, error) {
+func (s *CategoryService) UpdateCategory(ctx context.Context, id uint, req *dto.UpdateCategoryRequest, restaurantID uint) (*models.MenuCategory, error) {
 	// Verify category exists
-	category, err := s.categoryRepo.GetByID(id)
+	category, err := s.categoryRepo.GetByIDWithContext(ctx, id)
 	if err != nil {
 		return nil, errors.New("category not found")
 	}
@@ -93,10 +94,10 @@ func (s *CategoryService) UpdateCategory(id uint, req *dto.UpdateCategoryRequest
 	}
 
 	// Update the category
-	if err := s.categoryRepo.Update(id, updates); err != nil {
+	if err := s.categoryRepo.UpdateWithContext(ctx, id, updates); err != nil {
 		return nil, err
 	}
 
 	// Fetch and return updated category
-	return s.categoryRepo.GetByID(id)
+	return s.categoryRepo.GetByIDWithContext(ctx, id)
 }

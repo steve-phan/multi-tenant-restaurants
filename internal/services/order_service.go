@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 
 	"restaurant-backend/internal/models"
@@ -29,20 +30,20 @@ func NewOrderService(
 
 // OrderItemRequest represents an item in an order request
 type OrderItemRequest struct {
-	MenuItemID uint `json:"menu_item_id" binding:"required"`
-	Quantity   int  `json:"quantity" binding:"required,min=1"`
+	MenuItemID uint   `json:"menu_item_id" binding:"required"`
+	Quantity   int    `json:"quantity" binding:"required,min=1"`
 	Notes      string `json:"notes"`
 }
 
 // CreateOrderRequest represents order creation request
 type CreateOrderRequest struct {
-	UserID  uint              `json:"user_id" binding:"required"`
-	Items   []OrderItemRequest `json:"items" binding:"required,min=1"`
-	Notes   string            `json:"notes"`
+	UserID uint               `json:"user_id" binding:"required"`
+	Items  []OrderItemRequest `json:"items" binding:"required,min=1"`
+	Notes  string             `json:"notes"`
 }
 
 // CreateOrder creates a new order with items
-func (s *OrderService) CreateOrder(req *CreateOrderRequest, restaurantID uint) (*models.Order, error) {
+func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest, restaurantID uint) (*models.Order, error) {
 	if len(req.Items) == 0 {
 		return nil, errors.New("order must contain at least one item")
 	}
@@ -53,7 +54,7 @@ func (s *OrderService) CreateOrder(req *CreateOrderRequest, restaurantID uint) (
 
 	for _, itemReq := range req.Items {
 		// Get menu item to validate and get price
-		menuItem, err := s.menuItemRepo.GetByID(itemReq.MenuItemID)
+		menuItem, err := s.menuItemRepo.GetByIDWithContext(ctx, itemReq.MenuItemID)
 		if err != nil {
 			return nil, errors.New("menu item not found")
 		}
@@ -97,7 +98,7 @@ func (s *OrderService) CreateOrder(req *CreateOrderRequest, restaurantID uint) (
 		order.OrderItems[i].RestaurantID = restaurantID
 	}
 
-	if err := s.orderRepo.Create(order); err != nil {
+	if err := s.orderRepo.CreateWithContext(ctx, order); err != nil {
 		return nil, err
 	}
 
@@ -111,17 +112,32 @@ type UpdateOrderStatusRequest struct {
 
 // UpdateOrderStatus updates the status of an order
 func (s *OrderService) UpdateOrderStatus(orderID uint, req *UpdateOrderStatusRequest) (*models.Order, error) {
-	order, err := s.orderRepo.GetByID(orderID)
+	order, err := s.orderRepo.GetByIDWithContext(context.Background(), orderID)
 	if err != nil {
 		return nil, errors.New("order not found")
 	}
 
 	order.Status = req.Status
 
-	if err := s.orderRepo.Update(order); err != nil {
+	if err := s.orderRepo.UpdateWithContext(context.Background(), order); err != nil {
 		return nil, err
 	}
 
 	return order, nil
 }
 
+// UpdateOrderStatusWithCtx updates order status using provided context
+func (s *OrderService) UpdateOrderStatusWithCtx(ctx context.Context, orderID uint, req *UpdateOrderStatusRequest) (*models.Order, error) {
+	order, err := s.orderRepo.GetByIDWithContext(ctx, orderID)
+	if err != nil {
+		return nil, errors.New("order not found")
+	}
+
+	order.Status = req.Status
+
+	if err := s.orderRepo.UpdateWithContext(ctx, order); err != nil {
+		return nil, err
+	}
+
+	return order, nil
+}
