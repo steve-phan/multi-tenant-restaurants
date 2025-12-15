@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -31,7 +32,7 @@ type CreateReservationRequest struct {
 }
 
 // CreateReservation creates a new reservation with availability checking
-func (s *ReservationService) CreateReservation(req *CreateReservationRequest, restaurantID uint) (*models.Reservation, error) {
+func (s *ReservationService) CreateReservation(ctx context.Context, req *CreateReservationRequest, restaurantID uint) (*models.Reservation, error) {
 	// Validate time range
 	if req.EndTime.Before(req.StartTime) {
 		return nil, errors.New("end time must be after start time")
@@ -42,7 +43,7 @@ func (s *ReservationService) CreateReservation(req *CreateReservationRequest, re
 	}
 
 	// Check table availability
-	isAvailable, err := s.checkTableAvailability(restaurantID, req.TableNumber, req.StartTime, req.EndTime)
+	isAvailable, err := s.checkTableAvailability(ctx, restaurantID, req.TableNumber, req.StartTime, req.EndTime)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func (s *ReservationService) CreateReservation(req *CreateReservationRequest, re
 		Notes:          req.Notes,
 	}
 
-	if err := s.reservationRepo.Create(reservation); err != nil {
+	if err := s.reservationRepo.CreateWithContext(ctx, reservation); err != nil {
 		return nil, err
 	}
 
@@ -77,14 +78,30 @@ type UpdateReservationStatusRequest struct {
 
 // UpdateReservationStatus updates the status of a reservation
 func (s *ReservationService) UpdateReservationStatus(reservationID uint, req *UpdateReservationStatusRequest) (*models.Reservation, error) {
-	reservation, err := s.reservationRepo.GetByID(reservationID)
+	reservation, err := s.reservationRepo.GetByIDWithContext(context.Background(), reservationID)
 	if err != nil {
 		return nil, errors.New("reservation not found")
 	}
 
 	reservation.Status = req.Status
 
-	if err := s.reservationRepo.Update(reservation); err != nil {
+	if err := s.reservationRepo.UpdateWithContext(context.Background(), reservation); err != nil {
+		return nil, err
+	}
+
+	return reservation, nil
+}
+
+// UpdateReservationStatusWithCtx updates reservation status using provided context
+func (s *ReservationService) UpdateReservationStatusWithCtx(ctx context.Context, reservationID uint, req *UpdateReservationStatusRequest) (*models.Reservation, error) {
+	reservation, err := s.reservationRepo.GetByIDWithContext(ctx, reservationID)
+	if err != nil {
+		return nil, errors.New("reservation not found")
+	}
+
+	reservation.Status = req.Status
+
+	if err := s.reservationRepo.UpdateWithContext(ctx, reservation); err != nil {
 		return nil, err
 	}
 
@@ -92,9 +109,9 @@ func (s *ReservationService) UpdateReservationStatus(reservationID uint, req *Up
 }
 
 // checkTableAvailability checks if a table is available at the given time range
-func (s *ReservationService) checkTableAvailability(restaurantID uint, tableNumber string, startTime, endTime time.Time) (bool, error) {
+func (s *ReservationService) checkTableAvailability(ctx context.Context, restaurantID uint, tableNumber string, startTime, endTime time.Time) (bool, error) {
 	// Get existing reservations for this table in the time range
-	conflictingReservations, err := s.reservationRepo.GetByTableAndTime(restaurantID, tableNumber, startTime, endTime)
+	conflictingReservations, err := s.reservationRepo.GetByTableAndTimeWithContext(ctx, restaurantID, tableNumber, startTime, endTime)
 	if err != nil {
 		return false, err
 	}
