@@ -4,6 +4,7 @@ import (
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/handlers"
 	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/repositories"
 	"restaurant-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +18,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	// Add CORS middleware
 	r.Use(corsMiddleware(cfg))
 
+	// Initialize repositories
+	userRepo := repositories.NewUserRepository(db)
+
 	// Initialize services
-	authService := services.NewAuthService(db, cfg)
+	authService := services.NewAuthService(db, cfg, userRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)

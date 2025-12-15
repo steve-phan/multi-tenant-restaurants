@@ -38,7 +38,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response, err := h.authService.Login(&req)
+	// pass request context down to service for cancellation/traceability
+	response, err := h.authService.Login(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -76,7 +77,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		}
 	}
 
-	user, err := h.authService.Register(&req)
+	user, err := h.authService.Register(c.Request.Context(), &req)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "user with this email already exists" {

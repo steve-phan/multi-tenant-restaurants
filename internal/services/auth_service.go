@@ -1,11 +1,13 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/repositories"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -14,15 +16,17 @@ import (
 
 // AuthService handles authentication operations
 type AuthService struct {
-	db     *gorm.DB
-	config *config.Config
+	db       *gorm.DB
+	config   *config.Config
+	userRepo *repositories.UserRepository
 }
 
 // NewAuthService creates a new AuthService instance
-func NewAuthService(db *gorm.DB, cfg *config.Config) *AuthService {
+func NewAuthService(db *gorm.DB, cfg *config.Config, userRepo *repositories.UserRepository) *AuthService {
 	return &AuthService{
-		db:     db,
-		config: cfg,
+		db:       db,
+		config:   cfg,
+		userRepo: userRepo,
 	}
 }
 
@@ -48,11 +52,10 @@ type LoginResponse struct {
 }
 
 // Login authenticates a user and returns a JWT token
-func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
-	var user models.User
-
-	// Find user by email
-	if err := s.db.Preload("Restaurant").Where("email = ? AND is_active = ?", req.Email, true).First(&user).Error; err != nil {
+func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
+	// Use repository to load user (preloads Restaurant)
+	user, err := s.userRepo.GetByEmailGlobalWithContext(ctx, req.Email)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid credentials")
 		}
@@ -65,7 +68,7 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}
 
 	// Generate JWT token
-	token, err := s.generateToken(&user)
+	token, err := s.generateToken(user)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +78,7 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 
 	return &LoginResponse{
 		Token: token,
-		User:  &user,
+		User:  user,
 	}, nil
 }
 
@@ -92,15 +95,14 @@ type RegisterRequest struct {
 
 // Register creates a new user account (for restaurant users only)
 // KAM users cannot be created via this endpoint - use CreateKAM endpoint
-func (s *AuthService) Register(req *RegisterRequest) (*models.User, error) {
+func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*models.User, error) {
 	// KAM role is not allowed in regular registration
 	if req.Role == "KAM" {
 		return nil, errors.New("KAM users cannot be created via this endpoint. Use the KAM creation endpoint instead")
 	}
-
 	// Verify restaurant exists and is active
 	var restaurant models.Restaurant
-	if err := s.db.First(&restaurant, req.RestaurantID).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&restaurant, req.RestaurantID).Error; err != nil {
 		return nil, errors.New("restaurant not found")
 	}
 
@@ -108,9 +110,8 @@ func (s *AuthService) Register(req *RegisterRequest) (*models.User, error) {
 		return nil, errors.New("restaurant is not active")
 	}
 
-	// Check if user already exists
-	var existingUser models.User
-	if err := s.db.Where("email = ? AND restaurant_id = ?", req.Email, req.RestaurantID).First(&existingUser).Error; err == nil {
+	// Check if user already exists (use repository)
+	if existing, _ := s.userRepo.GetByEmailWithContext(ctx, req.Email, req.RestaurantID); existing != nil {
 		return nil, errors.New("user with this email already exists in this restaurant")
 	}
 
@@ -131,7 +132,7 @@ func (s *AuthService) Register(req *RegisterRequest) (*models.User, error) {
 		IsActive:     true,
 	}
 
-	if err := s.db.Create(user).Error; err != nil {
+	if err := s.userRepo.CreateWithContext(ctx, user); err != nil {
 		return nil, err
 	}
 

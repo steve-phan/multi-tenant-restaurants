@@ -47,7 +47,7 @@ func (h *RestaurantHandler) RegisterRestaurant(c *gin.Context) {
 		return
 	}
 
-	restaurant, err := h.restaurantService.RegisterRestaurant(&req)
+	restaurant, err := h.restaurantService.RegisterRestaurant(c.Request.Context(), &req)
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "restaurant with this email already exists" {
@@ -93,7 +93,7 @@ func (h *RestaurantHandler) ListRestaurants(c *gin.Context) {
 		}
 	}
 
-	restaurants, err := h.restaurantRepo.List(status, kamID)
+	restaurants, err := h.restaurantRepo.ListWithContext(c.Request.Context(), status, kamID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -118,7 +118,7 @@ func (h *RestaurantHandler) GetRestaurant(c *gin.Context) {
 		return
 	}
 
-	restaurant, err := h.restaurantRepo.GetByID(uint(id))
+	restaurant, err := h.restaurantRepo.GetByIDWithContext(c.Request.Context(), uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "restaurant not found"})
 		return
@@ -155,7 +155,7 @@ func (h *RestaurantHandler) ActivateRestaurant(c *gin.Context) {
 	}
 
 	// Activate restaurant - no request body needed, KAM ID comes from token
-	restaurant, err := h.restaurantService.ActivateRestaurant(uint(id), activatedBy.(uint))
+	restaurant, err := h.restaurantService.ActivateRestaurant(c.Request.Context(), uint(id), activatedBy.(uint))
 	if err != nil {
 		statusCode := http.StatusBadRequest
 		if err.Error() == "restaurant not found" {
@@ -204,7 +204,7 @@ func (h *RestaurantHandler) UpdateRestaurantStatus(c *gin.Context) {
 		return
 	}
 
-	restaurant, err := h.restaurantService.UpdateRestaurantStatus(uint(id), req.Status)
+	restaurant, err := h.restaurantService.UpdateRestaurantStatus(c.Request.Context(), uint(id), req.Status)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -221,7 +221,7 @@ func (h *RestaurantHandler) UpdateRestaurantStatus(c *gin.Context) {
 // @Success 200 {array} models.Restaurant
 // @Router /api/v1/restaurants/pending [get]
 func (h *RestaurantHandler) ListPendingRestaurants(c *gin.Context) {
-	restaurants, err := h.restaurantRepo.ListPending()
+	restaurants, err := h.restaurantRepo.ListPendingWithContext(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -260,7 +260,7 @@ func (h *RestaurantHandler) AssignKAM(c *gin.Context) {
 		return
 	}
 
-	restaurant, err := h.restaurantService.AssignKAM(uint(id), kamID)
+	restaurant, err := h.restaurantService.AssignKAM(c.Request.Context(), uint(id), kamID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

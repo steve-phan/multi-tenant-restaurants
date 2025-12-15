@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"slices"
 	"strings"
@@ -51,6 +52,15 @@ func RequireAuth(authService *services.AuthService) gin.HandlerFunc {
 		c.Set(RestaurantIDKey, claims.RestaurantID)
 		c.Set(UserRoleKey, claims.Role)
 		c.Set(UserEmailKey, claims.Email)
+
+		// Also store values in the request context so services/repositories
+		// that don't depend on Gin can retrieve them from context.Context.
+		reqCtx := c.Request.Context()
+		reqCtx = context.WithValue(reqCtx, UserIDKey, claims.UserID)
+		reqCtx = context.WithValue(reqCtx, RestaurantIDKey, claims.RestaurantID)
+		reqCtx = context.WithValue(reqCtx, UserRoleKey, claims.Role)
+		reqCtx = context.WithValue(reqCtx, UserEmailKey, claims.Email)
+		c.Request = c.Request.WithContext(reqCtx)
 
 		c.Next()
 	}

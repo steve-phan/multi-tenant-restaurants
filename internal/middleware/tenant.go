@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -57,6 +58,15 @@ func SetTenantContext(db *gorm.DB) gin.HandlerFunc {
 			roleSQL := fmt.Sprintf("SET app.current_user_role = '%s'", userRole.(string))
 			_ = db.Exec(roleSQL).Error // Ignore error for role setting
 		}
+
+		// Mirror restaurant and role into request context to be accessible
+		// by services/repositories that use context.Context directly.
+		reqCtx := c.Request.Context()
+		reqCtx = context.WithValue(reqCtx, RestaurantIDKey, restaurantID)
+		if userRole != nil {
+			reqCtx = context.WithValue(reqCtx, UserRoleKey, userRole.(string))
+		}
+		c.Request = c.Request.WithContext(reqCtx)
 
 		c.Next()
 	}
