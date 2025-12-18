@@ -13,9 +13,12 @@ import (
 
 // SetupRouter configures and returns the Gin router
 func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
-	r := gin.Default()
+	// Use gin.New() instead of Default() to skip default logger
+	r := gin.New()
 
-	// Add CORS middleware
+	// Add middlewares
+	r.Use(middleware.RequestLogger())
+	r.Use(gin.Recovery())
 	r.Use(corsMiddleware(cfg))
 
 	// Initialize repositories
