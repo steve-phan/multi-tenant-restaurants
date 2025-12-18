@@ -107,4 +107,3 @@ func BootstrapPlatform(db *gorm.DB, cfg *config.Config) error {
 
 	return nil
 }
-

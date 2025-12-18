@@ -20,4 +20,3 @@ type Order struct {
 	User       User        `gorm:"foreignKey:UserID"`
 	OrderItems []OrderItem `gorm:"foreignKey:OrderID"`
 }
-

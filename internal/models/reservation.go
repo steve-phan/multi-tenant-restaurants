@@ -22,4 +22,3 @@ type Reservation struct {
 	Restaurant Restaurant `gorm:"foreignKey:RestaurantID"`
 	User       User       `gorm:"foreignKey:UserID"`
 }
-

@@ -67,4 +67,3 @@ func (m *CreateTables) Down(db *gorm.DB) error {
 
 	return nil
 }
-

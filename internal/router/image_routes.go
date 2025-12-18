@@ -33,4 +33,3 @@ func setupImageRoutes(protected *gin.RouterGroup, cfg *config.Config) *handlers.
 
 	return imageHandler
 }
-

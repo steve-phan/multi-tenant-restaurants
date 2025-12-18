@@ -23,12 +23,11 @@ func setupPublicMenuRoutes(api *gin.RouterGroup, db *gorm.DB) {
 	{
 		// Get menu item details for ordering
 		public.GET("/:restaurant_id/menu-items/:item_id", publicMenuHandler.GetMenuItemPublic)
-		
+
 		// List categories for a restaurant
 		public.GET("/:restaurant_id/categories", publicMenuHandler.ListCategoriesPublic)
-		
+
 		// List menu items for a restaurant (optionally filtered by category)
 		public.GET("/:restaurant_id/menu-items", publicMenuHandler.ListMenuItemsPublic)
 	}
 }
-

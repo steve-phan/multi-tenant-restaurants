@@ -105,4 +105,3 @@ func (m *CreateRLSPolicies) Down(db *gorm.DB) error {
 	// Note: We don't drop the role as it might be used by other parts of the system
 	return nil
 }
-

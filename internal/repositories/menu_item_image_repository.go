@@ -71,4 +71,3 @@ func (r *MenuItemImageRepository) SetPrimary(menuItemID uint, imageID uint) erro
 		Where("id = ? AND menu_item_id = ?", imageID, menuItemID).
 		Update("is_primary", true).Error
 }
-

@@ -62,4 +62,3 @@ func (m *EnableRLS) Down(db *gorm.DB) error {
 
 	return nil
 }
-

@@ -79,4 +79,3 @@ func setupBusinessRoutes(protected *gin.RouterGroup, db *gorm.DB) {
 		orders.PUT("/:id/status", orderHandler.UpdateOrderStatus)
 	}
 }
-

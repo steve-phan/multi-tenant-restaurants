@@ -131,4 +131,3 @@ func (h *PublicMenuHandler) ListMenuItemsPublic(c *gin.Context) {
 
 	c.JSON(http.StatusOK, menuItems)
 }
-
