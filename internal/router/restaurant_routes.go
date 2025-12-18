@@ -11,11 +11,11 @@ import (
 )
 
 // setupRestaurantRoutes configures restaurant-related routes
-func setupRestaurantRoutes(api *gin.RouterGroup, protected *gin.RouterGroup, db *gorm.DB) {
+func setupRestaurantRoutes(api *gin.RouterGroup, protected *gin.RouterGroup, db *gorm.DB, emailService *services.EmailService) {
 	// Initialize repositories and services for restaurant routes
 	restaurantRepo := repositories.NewRestaurantRepository(db)
 	userRepo := repositories.NewUserRepository(db)
-	restaurantService := services.NewRestaurantService(restaurantRepo, userRepo)
+	restaurantService := services.NewRestaurantService(restaurantRepo, userRepo, emailService)
 	restaurantHandler := handlers.NewRestaurantHandler(restaurantService, restaurantRepo)
 
 	// Public restaurant registration route
