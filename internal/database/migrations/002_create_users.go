@@ -61,4 +61,3 @@ func (m *CreateUsersTable) Down(db *gorm.DB) error {
 
 	return nil
 }
-

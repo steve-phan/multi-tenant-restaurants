@@ -66,9 +66,9 @@ func (m *BootstrapPlatform) Up(db *gorm.DB) error {
 		log.Println("✓ Platform organization already exists")
 	}
 
-		// Always sync sequence after checking/creating platform organization
-		// Set sequence to max_id + 1 (or at least 2) to ensure next restaurant gets a unique ID
-		db.Exec(`
+	// Always sync sequence after checking/creating platform organization
+	// Set sequence to max_id + 1 (or at least 2) to ensure next restaurant gets a unique ID
+	db.Exec(`
 			DO $$
 			DECLARE
 				max_id BIGINT;
@@ -143,4 +143,3 @@ func (m *BootstrapPlatform) Down(db *gorm.DB) error {
 	log.Println("⚠ Platform organization and admin users removed")
 	return nil
 }
-

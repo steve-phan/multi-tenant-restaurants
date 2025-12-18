@@ -16,4 +16,3 @@ func setupAuthRoutes(api *gin.RouterGroup, authHandler *handlers.AuthHandler) {
 		auth.POST("/register", authHandler.Register)
 	}
 }
-

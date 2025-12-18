@@ -47,4 +47,3 @@ func (m *AddRestaurantKamFK) Down(db *gorm.DB) error {
 
 	return nil
 }
-

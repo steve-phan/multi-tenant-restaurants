@@ -21,4 +21,3 @@ type OrderItem struct {
 	Order      Order      `gorm:"foreignKey:OrderID"`
 	MenuItem   MenuItem   `gorm:"foreignKey:MenuItemID"`
 }
-

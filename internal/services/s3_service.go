@@ -109,4 +109,3 @@ func getFileExtension(fileName string) string {
 	}
 	return extension
 }
-

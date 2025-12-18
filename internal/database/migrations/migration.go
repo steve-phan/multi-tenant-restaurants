@@ -24,4 +24,3 @@ type MigrationVersion struct {
 func (MigrationVersion) TableName() string {
 	return "schema_migrations"
 }
-

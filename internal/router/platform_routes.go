@@ -26,4 +26,3 @@ func setupPlatformRoutes(protected *gin.RouterGroup, db *gorm.DB, authService *s
 		platform.GET("/kams", platformHandler.ListKAMs)
 	}
 }
-

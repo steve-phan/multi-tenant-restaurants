@@ -26,7 +26,7 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 
 	// Create runner and execute migrations
 	runner := migrations.NewRunner(db, migrationList)
-	
+
 	if err := runner.Up(); err != nil {
 		return fmt.Errorf("migrations failed: %w", err)
 	}
@@ -50,7 +50,7 @@ func RunMigrationsDown(db *gorm.DB, cfg *config.Config) error {
 	}
 
 	runner := migrations.NewRunner(db, migrationList)
-	
+
 	if err := runner.Down(); err != nil {
 		return fmt.Errorf("rollback failed: %w", err)
 	}
