@@ -13,6 +13,13 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	// ErrProfileNotFound is returned when a profile is not found
+	ErrProfileNotFound = errors.New("profile not found")
+	// ErrInvalidPassword is returned when the current password is incorrect
+	ErrInvalidPassword = errors.New("current password is incorrect")
+)
+
 // ProfileService handles profile management operations
 type ProfileService struct {
 	userRepo *repositories.UserRepository
@@ -30,7 +37,7 @@ func (s *ProfileService) GetProfile(ctx context.Context, userID uint) (*models.U
 	user, err := s.userRepo.GetByIDWithContext(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
+			return nil, ErrProfileNotFound
 		}
 		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
@@ -47,7 +54,7 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID uint, updateD
 	user, err := s.userRepo.GetByIDWithContext(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
+			return nil, ErrProfileNotFound
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
@@ -86,14 +93,14 @@ func (s *ProfileService) ChangePassword(ctx context.Context, userID uint, change
 	user, err := s.userRepo.GetByIDWithContext(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("user not found")
+			return ErrProfileNotFound
 		}
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Verify current password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(changeDTO.CurrentPassword)); err != nil {
-		return errors.New("current password is incorrect")
+		return ErrInvalidPassword
 	}
 
 	// Hash new password
@@ -116,7 +123,7 @@ func (s *ProfileService) UpdatePreferences(ctx context.Context, userID uint, pre
 	user, err := s.userRepo.GetByIDWithContext(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("user not found")
+			return ErrProfileNotFound
 		}
 		return fmt.Errorf("failed to get user: %w", err)
 	}
@@ -138,7 +145,7 @@ func (s *ProfileService) UpdateAvatar(ctx context.Context, userID uint, avatarUR
 	user, err := s.userRepo.GetByIDWithContext(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("user not found")
+			return ErrProfileNotFound
 		}
 		return fmt.Errorf("failed to get user: %w", err)
 	}

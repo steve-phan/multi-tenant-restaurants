@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -76,7 +77,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 
 	user, err := h.userService.GetUser(c.Request.Context(), uint(id), restaurantID)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -115,7 +116,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user, err := h.userService.CreateUser(c.Request.Context(), &req, restaurantID)
 	if err != nil {
 		statusCode := http.StatusBadRequest
-		if err.Error() == "user with this email already exists in this restaurant" {
+		if errors.Is(err, services.ErrUserExists) {
 			statusCode = http.StatusConflict
 		}
 		c.JSON(statusCode, gin.H{"error": err.Error()})
@@ -161,7 +162,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	user, err := h.userService.UpdateUser(c.Request.Context(), uint(id), &req, restaurantID)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -198,7 +199,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	}
 
 	if err := h.userService.DeleteUser(c.Request.Context(), uint(id), restaurantID); err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -243,7 +244,7 @@ func (h *UserHandler) ToggleUserStatus(c *gin.Context) {
 	}
 
 	if err := h.userService.ToggleUserStatus(c.Request.Context(), uint(id), restaurantID, req.IsActive); err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, services.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

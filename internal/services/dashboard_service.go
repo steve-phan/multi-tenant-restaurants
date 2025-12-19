@@ -25,8 +25,8 @@ func NewDashboardService(orderRepo *repositories.OrderRepository, reservationRep
 
 // DashboardStats represents the overall dashboard statistics
 type DashboardStats struct {
-	OrderStats       *repositories.OrderStats       `json:"order_stats"`
-	ReservationStats *repositories.ReservationStats `json:"reservation_stats"`
+	OrderStats       *repositories.OrderStats        `json:"order_stats"`
+	ReservationStats *repositories.ReservationStats  `json:"reservation_stats"`
 	OrdersByStatus   []repositories.OrderStatusCount `json:"orders_by_status"`
 }
 
@@ -79,11 +79,11 @@ func (s *DashboardService) GetRecentOrders(ctx context.Context, restaurantID uin
 
 // AnalyticsData represents analytics data for a specific period
 type AnalyticsData struct {
-	Period           string                          `json:"period"`
-	StartDate        string                          `json:"start_date"`
-	EndDate          string                          `json:"end_date"`
-	OrderStats       *repositories.OrderStats        `json:"order_stats"`
-	ReservationStats *repositories.ReservationStats  `json:"reservation_stats"`
+	Period           string                         `json:"period"`
+	StartDate        string                         `json:"start_date"`
+	EndDate          string                         `json:"end_date"`
+	OrderStats       *repositories.OrderStats       `json:"order_stats"`
+	ReservationStats *repositories.ReservationStats `json:"reservation_stats"`
 }
 
 // GetAnalytics retrieves analytics data for a specific period

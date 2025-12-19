@@ -13,6 +13,23 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	defaultPreferences = "{}"
+	defaultTimezone    = "UTC"
+	defaultLanguage    = "en"
+)
+
+var (
+	// ErrUserNotFound is returned when a user is not found
+	ErrUserNotFound = errors.New("user not found")
+	// ErrUserExists is returned when a user with the email already exists
+	ErrUserExists = errors.New("user with this email already exists in this restaurant")
+	// ErrInvalidRole is returned when an invalid role is provided
+	ErrInvalidRole = errors.New("invalid role")
+	// ErrKAMRoleNotAllowed is returned when KAM role is used in non-KAM endpoints
+	ErrKAMRoleNotAllowed = errors.New("KAM role cannot be used through this endpoint")
+)
+
 // UserService handles user management operations
 type UserService struct {
 	userRepo *repositories.UserRepository
@@ -23,6 +40,14 @@ func NewUserService(userRepo *repositories.UserRepository) *UserService {
 	return &UserService{
 		userRepo: userRepo,
 	}
+}
+
+// validateRole validates that the role is not KAM
+func validateRole(role string) error {
+	if role == "KAM" {
+		return ErrKAMRoleNotAllowed
+	}
+	return nil
 }
 
 // ListUsers retrieves all users for a restaurant
@@ -45,14 +70,14 @@ func (s *UserService) GetUser(ctx context.Context, id uint, restaurantID uint) (
 	user, err := s.userRepo.GetByIDWithContext(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
+			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Verify user belongs to the restaurant (multi-tenancy check)
 	if user.RestaurantID != restaurantID {
-		return nil, errors.New("user not found")
+		return nil, ErrUserNotFound
 	}
 
 	// Clear password hash
@@ -64,14 +89,14 @@ func (s *UserService) GetUser(ctx context.Context, id uint, restaurantID uint) (
 // CreateUser creates a new user with validation and password hashing
 func (s *UserService) CreateUser(ctx context.Context, createDTO *dto.CreateUserDTO, restaurantID uint) (*models.User, error) {
 	// Validate role (KAM not allowed here)
-	if createDTO.Role == "KAM" {
-		return nil, errors.New("KAM role cannot be created through this endpoint")
+	if err := validateRole(createDTO.Role); err != nil {
+		return nil, err
 	}
 
 	// Check email uniqueness within restaurant
 	existingUser, err := s.userRepo.GetByEmailWithContext(ctx, createDTO.Email, restaurantID)
 	if err == nil && existingUser != nil {
-		return nil, errors.New("user with this email already exists in this restaurant")
+		return nil, ErrUserExists
 	}
 
 	// Hash password
@@ -83,17 +108,17 @@ func (s *UserService) CreateUser(ctx context.Context, createDTO *dto.CreateUserD
 	// Set defaults for optional fields
 	timezone := createDTO.Timezone
 	if timezone == "" {
-		timezone = "UTC"
+		timezone = defaultTimezone
 	}
 
 	language := createDTO.Language
 	if language == "" {
-		language = "en"
+		language = defaultLanguage
 	}
 
 	preferences := createDTO.Preferences
 	if preferences == "" {
-		preferences = "{}"
+		preferences = defaultPreferences
 	}
 
 	// Create user
@@ -127,19 +152,21 @@ func (s *UserService) UpdateUser(ctx context.Context, id uint, updateDTO *dto.Up
 	user, err := s.userRepo.GetByIDWithContext(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
+			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Verify user belongs to the restaurant
 	if user.RestaurantID != restaurantID {
-		return nil, errors.New("user not found")
+		return nil, ErrUserNotFound
 	}
 
 	// Validate role if provided (KAM not allowed)
-	if updateDTO.Role != "" && updateDTO.Role == "KAM" {
-		return nil, errors.New("cannot change role to KAM")
+	if updateDTO.Role != "" {
+		if err := validateRole(updateDTO.Role); err != nil {
+			return nil, err
+		}
 	}
 
 	// Update fields
@@ -182,14 +209,14 @@ func (s *UserService) DeleteUser(ctx context.Context, id uint, restaurantID uint
 	user, err := s.userRepo.GetByIDWithContext(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("user not found")
+			return ErrUserNotFound
 		}
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Verify user belongs to the restaurant
 	if user.RestaurantID != restaurantID {
-		return errors.New("user not found")
+		return ErrUserNotFound
 	}
 
 	// Delete user
@@ -206,14 +233,14 @@ func (s *UserService) ToggleUserStatus(ctx context.Context, id uint, restaurantI
 	user, err := s.userRepo.GetByIDWithContext(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("user not found")
+			return ErrUserNotFound
 		}
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Verify user belongs to the restaurant
 	if user.RestaurantID != restaurantID {
-		return errors.New("user not found")
+		return ErrUserNotFound
 	}
 
 	// Update status

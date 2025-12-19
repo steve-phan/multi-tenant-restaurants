@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"restaurant-backend/internal/ctx"
@@ -43,7 +44,7 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 
 	user, err := h.profileService.GetProfile(c.Request.Context(), userID)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, services.ErrProfileNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -81,7 +82,7 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 
 	user, err := h.profileService.UpdateProfile(c.Request.Context(), userID, &req)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, services.ErrProfileNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -118,7 +119,7 @@ func (h *ProfileHandler) ChangePassword(c *gin.Context) {
 	}
 
 	if err := h.profileService.ChangePassword(c.Request.Context(), userID, &req); err != nil {
-		if err.Error() == "current password is incorrect" {
+		if errors.Is(err, services.ErrInvalidPassword) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

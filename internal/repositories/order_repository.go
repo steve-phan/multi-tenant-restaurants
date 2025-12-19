@@ -121,11 +121,11 @@ func (r *OrderRepository) UpdateStatusWithContext(ctx context.Context, id uint, 
 
 // OrderStats represents order statistics
 type OrderStats struct {
-	TotalOrders    int64   `json:"total_orders"`
-	PendingOrders  int64   `json:"pending_orders"`
-	CompletedOrders int64  `json:"completed_orders"`
-	CancelledOrders int64  `json:"cancelled_orders"`
-	TotalRevenue   float64 `json:"total_revenue"`
+	TotalOrders     int64   `json:"total_orders"`
+	PendingOrders   int64   `json:"pending_orders"`
+	CompletedOrders int64   `json:"completed_orders"`
+	CancelledOrders int64   `json:"cancelled_orders"`
+	TotalRevenue    float64 `json:"total_revenue"`
 }
 
 // GetOrderStats retrieves order statistics for a restaurant within a date range

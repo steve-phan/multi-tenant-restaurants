@@ -17,7 +17,7 @@ func setupProfileRoutes(protected *gin.RouterGroup, db *gorm.DB, cfg *config.Con
 
 	// Initialize services
 	profileService := services.NewProfileService(userRepo)
-	
+
 	// Initialize S3 service (optional)
 	var s3Service *services.S3Service
 	if cfg.S3BucketName != "" {
