@@ -149,3 +149,13 @@ See [deployment guide](./docs/deployment.md) for detailed AWS deployment instruc
 
 - [Architecture Blueprint](./A%20Comprehensive%20Architectural%20Blueprint%20for%20a%20Multi-Tenancy%20Restaurant%20Backend%20on%20AWS.md)
 - [Implementation Plan](./plan.md)
+
+
+## DEMO Credentials
+- KAM account
+Email: admin@admin.com
+Password: password
+
+- Restaurant account
+Email: john@goldenfork.com
+Password: password

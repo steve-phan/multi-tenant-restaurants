@@ -13,6 +13,18 @@ import (
 	brevo "github.com/getbrevo/brevo-go/lib"
 )
 
+// EmailTemplateID constants for Brevo template IDs
+// These should be configured in Brevo dashboard and updated here
+const (
+	TemplateRestaurantWelcome       int64 = 1
+	TemplateUserInvitation          int64 = 2
+	TemplatePasswordReset           int64 = 3
+	TemplateOrderConfirmation       int64 = 4
+	TemplateOrderStatusUpdate       int64 = 5
+	TemplateReservationConfirm      int64 = 6
+	TemplateReservationStatusUpdate int64 = 7
+)
+
 // EmailService handles email operations via Brevo
 type EmailService struct {
 	client      *brevo.APIClient
@@ -38,13 +50,13 @@ func NewEmailService(cfg *config.Config) *EmailService {
 }
 
 // SendRestaurantWelcomeEmail sends a welcome email to a newly activated restaurant
+// Uses Brevo template ID: TemplateRestaurantWelcome
 func (s *EmailService) SendRestaurantWelcomeEmail(
 	ctx context.Context,
 	restaurant *models.Restaurant,
 	adminEmail string,
 	tempPassword string,
 ) error {
-	// Prepare email parameters
 	sender := brevo.SendSmtpEmailSender{
 		Name:  s.senderName,
 		Email: s.senderEmail,
@@ -57,87 +69,29 @@ func (s *EmailService) SendRestaurantWelcomeEmail(
 		},
 	}
 
-	subject := fmt.Sprintf("Welcome to Restaurant Platform - %s is now Active!", restaurant.Name)
-
-	// HTML email body
-	htmlContent := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-        .credentials { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; border-radius: 4px; }
-        .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
-        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🎉 Welcome to Restaurant Platform!</h1>
-        </div>
-        <div class="content">
-            <h2>Hi %s,</h2>
-            <p>Great news! Your restaurant <strong>"%s"</strong> has been successfully activated and is now live on our platform.</p>
-            
-            <div class="credentials">
-                <h3>Your Admin Account Credentials</h3>
-                <p><strong>Email:</strong> %s</p>
-                <p><strong>Temporary Password:</strong> <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-family: monospace;">%s</code></p>
-            </div>
-
-            <div class="warning">
-                <strong>⚠️ Important Security Notice:</strong><br>
-                Please change your password immediately after your first login for security purposes.
-            </div>
-
-            <div style="text-align: center;">
-                <a href="%s/login" class="button">Login to Your Dashboard</a>
-            </div>
-
-            <h3>What's Next?</h3>
-            <ul>
-                <li>Complete your restaurant profile</li>
-                <li>Add your menu items</li>
-                <li>Configure table settings</li>
-                <li>Start accepting orders and reservations</li>
-            </ul>
-
-            <p>If you have any questions or need assistance, please don't hesitate to reach out to your Key Account Manager.</p>
-
-            <p>Best regards,<br>
-            <strong>The Restaurant Platform Team</strong></p>
-        </div>
-        <div class="footer">
-            <p>This is an automated message. Please do not reply to this email.</p>
-        </div>
-    </div>
-</body>
-</html>
-	`, restaurant.ContactName, restaurant.Name, adminEmail, tempPassword, s.config.FrontendURL)
-
-	// Create email request
-	emailRequest := brevo.SendSmtpEmail{
-		Sender:      &sender,
-		To:          to,
-		Subject:     subject,
-		HtmlContent: htmlContent,
+	// Template parameters
+	params := map[string]interface{}{
+		"contact_name":    restaurant.ContactName,
+		"restaurant_name": restaurant.Name,
+		"admin_email":     adminEmail,
+		"temp_password":   tempPassword,
+		"frontend_url":    s.config.FrontendURL,
 	}
 
-	// Send email
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplateRestaurantWelcome,
+		Params:     params,
+	}
+
 	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
 	if err != nil {
 		return fmt.Errorf("failed to send welcome email: %w", err)
 	}
 
 	return nil
-}
-
-// GenerateSecurePassword generates a secure random password
+} // GenerateSecurePassword generates a secure random password
 // Format: 12 characters with uppercase, lowercase, numbers, and symbols
 func GenerateSecurePassword() (string, error) {
 	const (
@@ -207,4 +161,349 @@ func ExtractLastName(fullName string) string {
 		return strings.Join(parts[1:], " ")
 	}
 	return ""
+}
+
+// OrderItem represents an item in an order for email template
+type OrderItem struct {
+	Name     string  `json:"name"`
+	Quantity int     `json:"quantity"`
+	Price    float64 `json:"price"`
+	Subtotal float64 `json:"subtotal"`
+}
+
+// SendUserInvitationEmail sends an invitation email to a new user
+// Uses Brevo template ID: TemplateUserInvitation
+func (s *EmailService) SendUserInvitationEmail(
+	ctx context.Context,
+	userEmail string,
+	userFirstName string,
+	restaurantName string,
+	inviterName string,
+	tempPassword string,
+	userRole string,
+) error {
+	sender := brevo.SendSmtpEmailSender{
+		Name:  s.senderName,
+		Email: s.senderEmail,
+	}
+
+	to := []brevo.SendSmtpEmailTo{
+		{
+			Email: userEmail,
+			Name:  userFirstName,
+		},
+	}
+
+	roleDescription := map[string]string{
+		"Admin":  "as an administrator with full access to manage the restaurant",
+		"Staff":  "as a staff member to help manage orders and operations",
+		"Client": "to place orders and make reservations",
+	}
+
+	roleDesc, ok := roleDescription[userRole]
+	if !ok {
+		roleDesc = "to your restaurant"
+	}
+
+	// Template parameters
+	params := map[string]interface{}{
+		"user_first_name":  userFirstName,
+		"inviter_name":     inviterName,
+		"restaurant_name":  restaurantName,
+		"user_email":       userEmail,
+		"temp_password":    tempPassword,
+		"user_role":        userRole,
+		"role_description": roleDesc,
+		"frontend_url":     s.config.FrontendURL,
+	}
+
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplateUserInvitation,
+		Params:     params,
+	}
+
+	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send user invitation email: %w", err)
+	}
+
+	return nil
+}
+
+// SendPasswordResetEmail sends a password reset email
+// Uses Brevo template ID: TemplatePasswordReset
+func (s *EmailService) SendPasswordResetEmail(
+	ctx context.Context,
+	userEmail string,
+	userFirstName string,
+	resetToken string,
+	expirationHours int,
+) error {
+	sender := brevo.SendSmtpEmailSender{
+		Name:  s.senderName,
+		Email: s.senderEmail,
+	}
+
+	to := []brevo.SendSmtpEmailTo{
+		{
+			Email: userEmail,
+			Name:  userFirstName,
+		},
+	}
+
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", s.config.FrontendURL, resetToken)
+
+	// Template parameters
+	params := map[string]interface{}{
+		"user_first_name":  userFirstName,
+		"reset_link":       resetLink,
+		"reset_token":      resetToken,
+		"expiration_hours": expirationHours,
+	}
+
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplatePasswordReset,
+		Params:     params,
+	}
+
+	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send password reset email: %w", err)
+	}
+
+	return nil
+}
+
+// SendOrderConfirmationEmail sends order confirmation email to customer
+// Uses Brevo template ID: TemplateOrderConfirmation
+func (s *EmailService) SendOrderConfirmationEmail(
+	ctx context.Context,
+	customerEmail string,
+	customerName string,
+	restaurantName string,
+	orderID uint,
+	items []OrderItem,
+	subtotal float64,
+	tax float64,
+	deliveryFee float64,
+	total float64,
+	estimatedMinutes int,
+	specialNotes string,
+	restaurantPhone string,
+	restaurantAddress string,
+) error {
+	sender := brevo.SendSmtpEmailSender{
+		Name:  s.senderName,
+		Email: s.senderEmail,
+	}
+
+	to := []brevo.SendSmtpEmailTo{
+		{
+			Email: customerEmail,
+			Name:  customerName,
+		},
+	}
+
+	// Template parameters
+	params := map[string]interface{}{
+		"customer_name":      customerName,
+		"restaurant_name":    restaurantName,
+		"order_id":           orderID,
+		"order_items":        items,
+		"subtotal":           subtotal,
+		"tax":                tax,
+		"delivery_fee":       deliveryFee,
+		"total":              total,
+		"estimated_minutes":  estimatedMinutes,
+		"special_notes":      specialNotes,
+		"restaurant_phone":   restaurantPhone,
+		"restaurant_address": restaurantAddress,
+		"frontend_url":       s.config.FrontendURL,
+	}
+
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplateOrderConfirmation,
+		Params:     params,
+	}
+
+	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send order confirmation email: %w", err)
+	}
+
+	return nil
+}
+
+// SendOrderStatusUpdateEmail sends order status update email
+// Uses Brevo template ID: TemplateOrderStatusUpdate
+func (s *EmailService) SendOrderStatusUpdateEmail(
+	ctx context.Context,
+	customerEmail string,
+	customerName string,
+	restaurantName string,
+	orderID uint,
+	status string,
+	statusMessage string,
+	statusEmoji string,
+	estimatedMinutes int,
+) error {
+	sender := brevo.SendSmtpEmailSender{
+		Name:  s.senderName,
+		Email: s.senderEmail,
+	}
+
+	to := []brevo.SendSmtpEmailTo{
+		{
+			Email: customerEmail,
+			Name:  customerName,
+		},
+	}
+
+	// Template parameters
+	params := map[string]interface{}{
+		"customer_name":     customerName,
+		"restaurant_name":   restaurantName,
+		"order_id":          orderID,
+		"status":            status,
+		"status_message":    statusMessage,
+		"status_emoji":      statusEmoji,
+		"estimated_minutes": estimatedMinutes,
+		"frontend_url":      s.config.FrontendURL,
+	}
+
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplateOrderStatusUpdate,
+		Params:     params,
+	}
+
+	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send order status update email: %w", err)
+	}
+
+	return nil
+}
+
+// SendReservationConfirmationEmail sends reservation confirmation email
+// Uses Brevo template ID: TemplateReservationConfirm
+func (s *EmailService) SendReservationConfirmationEmail(
+	ctx context.Context,
+	customerEmail string,
+	customerName string,
+	restaurantName string,
+	reservationID uint,
+	reservationDate string,
+	reservationTime string,
+	durationMinutes int,
+	numberOfGuests int,
+	tableNumber string,
+	specialRequests string,
+	restaurantAddress string,
+	restaurantPhone string,
+	confirmationCode string,
+) error {
+	sender := brevo.SendSmtpEmailSender{
+		Name:  s.senderName,
+		Email: s.senderEmail,
+	}
+
+	to := []brevo.SendSmtpEmailTo{
+		{
+			Email: customerEmail,
+			Name:  customerName,
+		},
+	}
+
+	// Template parameters
+	params := map[string]interface{}{
+		"customer_name":      customerName,
+		"restaurant_name":    restaurantName,
+		"reservation_id":     reservationID,
+		"reservation_date":   reservationDate,
+		"reservation_time":   reservationTime,
+		"duration_minutes":   durationMinutes,
+		"number_of_guests":   numberOfGuests,
+		"table_number":       tableNumber,
+		"special_requests":   specialRequests,
+		"restaurant_address": restaurantAddress,
+		"restaurant_phone":   restaurantPhone,
+		"confirmation_code":  confirmationCode,
+		"frontend_url":       s.config.FrontendURL,
+	}
+
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplateReservationConfirm,
+		Params:     params,
+	}
+
+	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send reservation confirmation email: %w", err)
+	}
+
+	return nil
+}
+
+// SendReservationStatusUpdateEmail sends reservation status update email
+// Uses Brevo template ID: TemplateReservationStatusUpdate
+func (s *EmailService) SendReservationStatusUpdateEmail(
+	ctx context.Context,
+	customerEmail string,
+	customerName string,
+	restaurantName string,
+	reservationID uint,
+	status string,
+	statusMessage string,
+	reservationDate string,
+	reservationTime string,
+	cancellationReason string,
+) error {
+	sender := brevo.SendSmtpEmailSender{
+		Name:  s.senderName,
+		Email: s.senderEmail,
+	}
+
+	to := []brevo.SendSmtpEmailTo{
+		{
+			Email: customerEmail,
+			Name:  customerName,
+		},
+	}
+
+	// Template parameters
+	params := map[string]interface{}{
+		"customer_name":       customerName,
+		"restaurant_name":     restaurantName,
+		"reservation_id":      reservationID,
+		"status":              status,
+		"status_message":      statusMessage,
+		"reservation_date":    reservationDate,
+		"reservation_time":    reservationTime,
+		"cancellation_reason": cancellationReason,
+		"frontend_url":        s.config.FrontendURL,
+	}
+
+	emailRequest := brevo.SendSmtpEmail{
+		Sender:     &sender,
+		To:         to,
+		TemplateId: TemplateReservationStatusUpdate,
+		Params:     params,
+	}
+
+	_, _, err := s.client.TransactionalEmailsApi.SendTransacEmail(ctx, emailRequest)
+	if err != nil {
+		return fmt.Errorf("failed to send reservation status update email: %w", err)
+	}
+
+	return nil
 }
