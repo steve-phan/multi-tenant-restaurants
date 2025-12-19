@@ -13,15 +13,19 @@ import (
 
 // SetupRouter configures and returns the Gin router
 func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
-	r := gin.Default()
+	// Use gin.New() instead of Default() to skip default logger
+	r := gin.New()
 
-	// Add CORS middleware
+	// Add middlewares
+	r.Use(middleware.RequestLogger())
+	r.Use(gin.Recovery())
 	r.Use(corsMiddleware(cfg))
 
 	// Initialize repositories
 	userRepo := repositories.NewUserRepository(db)
 
 	// Initialize services
+	emailService := services.NewEmailService(cfg)
 	authService := services.NewAuthService(db, cfg, userRepo)
 
 	// Initialize handlers
@@ -54,13 +58,22 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		setupBusinessRoutes(protected, db)
 
 		// Setup restaurant routes (includes public registration)
-		setupRestaurantRoutes(api, protected, db)
+		setupRestaurantRoutes(api, protected, db, emailService)
 
 		// Setup platform routes (KAM management)
 		setupPlatformRoutes(protected, db, authService)
 
 		// Setup image routes (S3)
 		setupImageRoutes(protected, cfg)
+
+		// Setup user management routes
+		setupUserRoutes(protected, db)
+
+		// Setup profile management routes
+		setupProfileRoutes(protected, db, cfg)
+
+		// Setup dashboard routes
+		setupDashboardRoutes(protected, db)
 	}
 
 	return r
@@ -72,8 +85,15 @@ func corsMiddleware(cfg *config.Config) gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		if len(cfg.CORSAllowedOrigins) == 1 && cfg.CORSAllowedOrigins[0] == "*" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			// When wildcard is configured but credentials are needed,
+			// echo back the requesting origin instead of using "*"
+			if origin != "" {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			} else {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			}
 		} else {
+			// Check if origin is in allowed list
 			for _, allowedOrigin := range cfg.CORSAllowedOrigins {
 				if origin == allowedOrigin {
 					c.Writer.Header().Set("Access-Control-Allow-Origin", origin)

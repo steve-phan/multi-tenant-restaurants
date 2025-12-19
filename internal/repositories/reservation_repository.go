@@ -143,3 +143,59 @@ func (r *ReservationRepository) Delete(id uint) error {
 func (r *ReservationRepository) DeleteWithContext(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Model(&models.Reservation{}).Where("id = ?", id).Update("status", "cancelled").Error
 }
+
+// ReservationStats represents reservation statistics
+type ReservationStats struct {
+	TotalReservations     int64 `json:"total_reservations"`
+	PendingReservations   int64 `json:"pending_reservations"`
+	ConfirmedReservations int64 `json:"confirmed_reservations"`
+	CompletedReservations int64 `json:"completed_reservations"`
+	CancelledReservations int64 `json:"cancelled_reservations"`
+}
+
+// GetReservationStats retrieves reservation statistics for a restaurant within a date range
+func (r *ReservationRepository) GetReservationStats(ctx context.Context, restaurantID uint, startDate, endDate string) (*ReservationStats, error) {
+	var stats ReservationStats
+
+	// Get total reservations
+	if err := r.db.WithContext(ctx).
+		Model(&models.Reservation{}).
+		Where("restaurant_id = ? AND created_at >= ? AND created_at <= ?", restaurantID, startDate, endDate).
+		Count(&stats.TotalReservations).Error; err != nil {
+		return nil, err
+	}
+
+	// Get pending reservations
+	if err := r.db.WithContext(ctx).
+		Model(&models.Reservation{}).
+		Where("restaurant_id = ? AND status = ? AND created_at >= ? AND created_at <= ?", restaurantID, "pending", startDate, endDate).
+		Count(&stats.PendingReservations).Error; err != nil {
+		return nil, err
+	}
+
+	// Get confirmed reservations
+	if err := r.db.WithContext(ctx).
+		Model(&models.Reservation{}).
+		Where("restaurant_id = ? AND status = ? AND created_at >= ? AND created_at <= ?", restaurantID, "confirmed", startDate, endDate).
+		Count(&stats.ConfirmedReservations).Error; err != nil {
+		return nil, err
+	}
+
+	// Get completed reservations
+	if err := r.db.WithContext(ctx).
+		Model(&models.Reservation{}).
+		Where("restaurant_id = ? AND status = ? AND created_at >= ? AND created_at <= ?", restaurantID, "completed", startDate, endDate).
+		Count(&stats.CompletedReservations).Error; err != nil {
+		return nil, err
+	}
+
+	// Get cancelled reservations
+	if err := r.db.WithContext(ctx).
+		Model(&models.Reservation{}).
+		Where("restaurant_id = ? AND status = ? AND created_at >= ? AND created_at <= ?", restaurantID, "cancelled", startDate, endDate).
+		Count(&stats.CancelledReservations).Error; err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}

@@ -21,6 +21,7 @@ func RunMigrations(db *gorm.DB, cfg *config.Config) error {
 		migrations.NewSyncSequences(),
 		migrations.NewEnableRLS(),
 		migrations.NewCreateRLSPolicies(),
+		migrations.NewAddUserFields(),
 		// Bootstrap is separate - use BootstrapPlatform() instead
 	}
 
@@ -70,6 +71,7 @@ func ShowMigrationStatus(db *gorm.DB, cfg *config.Config) error {
 		migrations.NewSyncSequences(),
 		migrations.NewEnableRLS(),
 		migrations.NewCreateRLSPolicies(),
+		migrations.NewAddUserFields(),
 	}
 
 	runner := migrations.NewRunner(db, migrationList)

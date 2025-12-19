@@ -38,6 +38,12 @@ type Config struct {
 	// CORS configuration
 	CORSAllowedOrigins []string
 
+	// Brevo Email configuration
+	BrevoAPIKey      string
+	BrevoSenderEmail string
+	BrevoSenderName  string
+	FrontendURL      string
+
 	// Bootstrap configuration (for initial admin user)
 	BootstrapAdminEmail    string
 	BootstrapAdminPassword string
@@ -78,6 +84,10 @@ func Load() (*Config, error) {
 		S3BucketName:           getEnv("S3_BUCKET_NAME", ""),
 		JWTSecret:              getEnv("JWT_SECRET", ""),
 		JWTExpiration:          getEnvAsInt("JWT_EXPIRATION_HOURS", 24),
+		BrevoAPIKey:            getEnv("BREVO_API_KEY", ""),
+		BrevoSenderEmail:       getEnv("BREVO_SENDER_EMAIL", "noreply@restaurant-platform.local"),
+		BrevoSenderName:        getEnv("BREVO_SENDER_NAME", "Restaurant Platform"),
+		FrontendURL:            getEnv("FRONTEND_URL", "http://localhost:3000"),
 		BootstrapAdminEmail:    getEnv("BOOTSTRAP_ADMIN_EMAIL", "admin@platform.local"),
 		BootstrapAdminPassword: getEnv("BOOTSTRAP_ADMIN_PASSWORD", ""),
 	}

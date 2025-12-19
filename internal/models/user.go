@@ -15,6 +15,11 @@ type User struct {
 	LastName     string    `json:"last_name"`
 	Role         string    `gorm:"type:varchar(20);not null" json:"role"` // Admin, Staff, Client, KAM (Key Account Manager)
 	IsActive     bool      `gorm:"default:true" json:"is_active"`
+	Phone        string    `gorm:"type:varchar(20)" json:"phone,omitempty"`
+	Timezone     string    `gorm:"type:varchar(50);default:'UTC'" json:"timezone"`
+	Language     string    `gorm:"type:varchar(10);default:'en'" json:"language"`
+	Preferences  string    `gorm:"type:jsonb;default:'{}'" json:"preferences,omitempty"` // JSON string for preferences
+	AvatarURL    string    `json:"avatar_url,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 
