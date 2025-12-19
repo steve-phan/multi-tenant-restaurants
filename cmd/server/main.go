@@ -1,5 +1,11 @@
 package main
 
+// @title Restaurant Management API
+// @version 1.0
+// @description Multi-tenant Restaurant Management System
+// @host localhost:8080
+// @BasePath /api/v1
+
 import (
 	"context"
 	"flag"

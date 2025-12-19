@@ -16,13 +16,13 @@ import (
 // EmailTemplateID constants for Brevo template IDs
 // These should be configured in Brevo dashboard and updated here
 const (
-	TemplateRestaurantWelcome       int64 = 1
-	TemplateUserInvitation          int64 = 2
-	TemplatePasswordReset           int64 = 3
-	TemplateOrderConfirmation       int64 = 4
-	TemplateOrderStatusUpdate       int64 = 5
+	TemplateRestaurantWelcome       int64 = 2
+	TemplateUserInvitation          int64 = 3
+	TemplatePasswordReset           int64 = 4
+	TemplateOrderConfirmation       int64 = 5
+	TemplateOrderStatusUpdate       int64 = 11 // Not implemented
 	TemplateReservationConfirm      int64 = 6
-	TemplateReservationStatusUpdate int64 = 7
+	TemplateReservationStatusUpdate int64 = 10 // Not implemented
 )
 
 // EmailService handles email operations via Brevo
