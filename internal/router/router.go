@@ -65,6 +65,15 @@ func SetupRouter(cfg *config.Config, db *gorm.DB) *gin.Engine {
 
 		// Setup image routes (S3)
 		setupImageRoutes(protected, cfg)
+
+		// Setup user management routes
+		setupUserRoutes(protected, db)
+
+		// Setup profile management routes
+		setupProfileRoutes(protected, db, cfg)
+
+		// Setup dashboard routes
+		setupDashboardRoutes(protected, db)
 	}
 
 	return r
