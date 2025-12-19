@@ -128,3 +128,22 @@ func (r *UserRepository) Delete(id uint) error {
 func (r *UserRepository) DeleteWithContext(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&models.User{}, id).Error
 }
+
+// UpdateUserStatus updates the is_active status of a user
+func (r *UserRepository) UpdateUserStatus(ctx context.Context, id uint, isActive bool) error {
+	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", id).Update("is_active", isActive).Error
+}
+
+// UpdateUserPassword updates the password hash of a user
+func (r *UserRepository) UpdateUserPassword(ctx context.Context, userID uint, hashedPassword string) error {
+	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("password_hash", hashedPassword).Error
+}
+
+// GetByEmailAnyRestaurant checks if email exists in any restaurant (for uniqueness check)
+func (r *UserRepository) GetByEmailAnyRestaurant(ctx context.Context, email string) (*models.User, error) {
+	var user models.User
+	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
